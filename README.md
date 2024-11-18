@@ -8,5 +8,5 @@ this project is done in flutter, originally im doing this for android and timely
 for database im using firestore database
 and for security im using firebase authentication
 
-Thankyoy 
+Thankyoy :)
 -Anwesh Krishna B
