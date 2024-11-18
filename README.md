@@ -1,16 +1,12 @@
-# rent_n_use
+# rent_n_use this is my timepass project
 
-A new Flutter project.
+its basically to give your tools to rent or get tools for rent
 
-## Getting Started
+## just started with this project
 
-This project is a starting point for a Flutter application.
+this project is done in flutter, originally im doing this for android and timely i can go to ios,
+for database im using firestore database
+and for security im using firebase authentication
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Thankyoy 
+-Anwesh
