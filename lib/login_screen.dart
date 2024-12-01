@@ -13,12 +13,41 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   final AuthService _authService = AuthService();
+  bool _isLoading = false;
+  String _emailError = '';
+  String _passwordError = '';
 
   void _login() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
 
-    if (email.isNotEmpty && password.isNotEmpty) {
+    setState(() {
+      _emailError = '';
+      _passwordError = '';
+      _isLoading = true;
+    });
+
+    // Validate email format
+    if (email.isEmpty ||
+        !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$')
+            .hasMatch(email)) {
+      setState(() {
+        _emailError = 'Please enter a valid email address';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Validate password length
+    if (password.isEmpty || password.length < 6) {
+      setState(() {
+        _passwordError = 'Password must be at least 6 characters long';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
       var user = await _authService.login(email, password);
 
       // Check if the user is logged in successfully
@@ -42,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.of(context).pop();
                       FirebaseAuth.instance
-                          .signOut(); // Sign out the user if email is not verified
+                          .signOut(); // Sign out if email is not verified
                     },
                   ),
                 ],
@@ -51,10 +80,42 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } else {
+        setState(() {
+          _isLoading = false;
+        });
         print("Login Failed");
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text("Login Failed"),
+            content: Text("Invalid email or password. Please try again."),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text("OK"),
+              ),
+            ],
+          ),
+        );
       }
-    } else {
-      print("Fields cannot be empty");
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      print("Login Error: $e");
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text("Login Error"),
+          content: Text("An error occurred during login. Please try again."),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("OK"),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -114,6 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     contentPadding:
                         EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+                    errorText: _emailError.isEmpty ? null : _emailError,
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
@@ -133,13 +195,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     contentPadding:
                         EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+                    errorText: _passwordError.isEmpty ? null : _passwordError,
                   ),
                   obscureText: true,
                 ),
                 SizedBox(height: 30),
                 // Login Button
                 ElevatedButton(
-                  onPressed: _login,
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
                         Colors.teal, // Button color (instead of 'primary')
@@ -151,16 +214,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     elevation: 5, // Subtle shadow
                   ),
-                  child: Text(
-                    'Login',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
-
                 SizedBox(height: 20),
                 // Sign Up Navigation
                 TextButton(
@@ -188,7 +252,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     TextButton(
                       onPressed: () {
-                        // Navigate to Forgot Password Screen (optional)
+                        // Navigate to Reset Password Screen
+                        Navigator.pushNamed(context, '/reset-password');
                       },
                       child: Text(
                         'Reset here',
@@ -201,6 +266,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
+
                 SizedBox(height: 50),
               ],
             ),

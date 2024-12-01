@@ -16,8 +16,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   // Sign-up method with email, password, and password confirmation
   Future<void> signUpWithEmailPassword() async {
-    String password = _passwordController.text;
-    String confirmPassword = _confirmPasswordController.text;
+    String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
+    String confirmPassword = _confirmPasswordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      setState(() {
+        errorMessage = "Please fill in all fields.";
+      });
+      return;
+    }
 
     if (password != confirmPassword) {
       setState(() {
@@ -30,7 +38,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       // Create user
       UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text,
+        email: email,
         password: password,
       );
 
@@ -79,89 +87,92 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(height: 40),
-            Text(
-              "Create Your Account",
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 30),
-            _buildTextField(
-              controller: _emailController,
-              label: "Email",
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 16),
-            _buildTextField(
-              controller: _passwordController,
-              label: "Password",
-              obscureText: true,
-            ),
-            SizedBox(height: 16),
-            _buildTextField(
-              controller: _confirmPasswordController,
-              label: "Confirm Password",
-              obscureText: true,
-            ),
-            SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: signUpWithEmailPassword,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.teal, // Button color
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30.0),
-                ),
-                elevation: 5,
-              ),
-              child: Text(
-                "Sign Up",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            if (errorMessage.isNotEmpty) ...[
-              SizedBox(height: 16),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(height: 40),
               Text(
-                errorMessage,
+                "Create Your Account",
                 style: TextStyle(
-                  color: Colors.red,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
                 ),
                 textAlign: TextAlign.center,
               ),
-            ],
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("Already have an account?"),
-                TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, '/login');
-                  },
-                  child: Text(
-                    "Log In",
-                    style: TextStyle(
-                      color: Colors.teal,
-                      fontWeight: FontWeight.bold,
-                    ),
+              SizedBox(height: 30),
+              _buildTextField(
+                controller: _emailController,
+                label: "Email",
+                keyboardType: TextInputType.emailAddress,
+              ),
+              SizedBox(height: 16),
+              _buildTextField(
+                controller: _passwordController,
+                label: "Password",
+                obscureText: true,
+              ),
+              SizedBox(height: 16),
+              _buildTextField(
+                controller: _confirmPasswordController,
+                label: "Confirm Password",
+                obscureText: true,
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: signUpWithEmailPassword,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal, // Button color
+                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                  ),
+                  elevation: 5,
+                ),
+                child: Text(
+                  "Sign Up",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
+              ),
+              if (errorMessage.isNotEmpty) ...[
+                SizedBox(height: 16),
+                Text(
+                  errorMessage,
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ],
-            ),
-          ],
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Already have an account?"),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(
+                          context); // This will go back to the previous screen
+                    },
+                    child: Text(
+                      "Log In",
+                      style: TextStyle(
+                        color: Colors.teal,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

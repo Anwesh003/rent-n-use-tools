@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'ResetPasswordScreen.dart';
 import 'home_screen.dart'; // Import HomeScreen
 import 'login_screen.dart';
 import 'signup_screen.dart'; // Import SignUpScreen
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => AuthCheck(),
         '/home': (context) => HomeScreen(),
         '/login': (context) => LoginScreen(),
+        '/reset-password': (context) => ResetPasswordScreen(),
         '/signup': (context) => SignUpScreen(), // Add route for SignUpScreen
       },
     );
