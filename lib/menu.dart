@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'tools_provider.dart'; // Import ToolsProviderPage
+
 class Menu extends StatelessWidget {
   final Function(String) onMenuOptionSelected;
 
@@ -30,8 +32,11 @@ class Menu extends StatelessWidget {
               icon: Icons.business_center,
               title: 'Become Tools Provider',
               onTap: () {
-                // Navigate to BecomeToolsProvider screen
-                Navigator.pushNamed(context, '/becomeToolsProvider');
+                // Navigate directly to ToolsProviderPage from the Menu
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ToolsProviderPage()),
+                );
               },
             ),
             const SizedBox(height: 16),

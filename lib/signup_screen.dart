@@ -42,9 +42,27 @@ class _SignUpScreenState extends State<SignUpScreen> {
             "A verification email has been sent. Please check your inbox.";
       });
 
-      // Optionally, navigate to home screen after sign-up
-      Navigator.pushReplacementNamed(
-          context, '/home'); // Navigate to Home Screen
+      // Show a dialog to inform the user to verify their email
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Verify Your Email"),
+            content: Text(
+                "A verification email has been sent to your inbox. Please verify your email before logging in."),
+            actions: <Widget>[
+              TextButton(
+                child: Text("OK"),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  // Optionally, navigate to the login screen after displaying the message
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+              ),
+            ],
+          );
+        },
+      );
     } catch (e) {
       setState(() {
         errorMessage = "Error: $e";
@@ -55,33 +73,125 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Sign Up")),
+      appBar: AppBar(
+        title: Text("Sign Up"),
+        backgroundColor: Colors.teal,
+      ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
+            SizedBox(height: 40),
+            Text(
+              "Create Your Account",
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.teal,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 30),
+            _buildTextField(
               controller: _emailController,
-              decoration: InputDecoration(labelText: "Email"),
+              label: "Email",
+              keyboardType: TextInputType.emailAddress,
             ),
-            TextField(
+            SizedBox(height: 16),
+            _buildTextField(
               controller: _passwordController,
+              label: "Password",
               obscureText: true,
-              decoration: InputDecoration(labelText: "Password"),
             ),
-            TextField(
+            SizedBox(height: 16),
+            _buildTextField(
               controller: _confirmPasswordController,
+              label: "Confirm Password",
               obscureText: true,
-              decoration: InputDecoration(labelText: "Confirm Password"),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 24),
             ElevatedButton(
               onPressed: signUpWithEmailPassword,
-              child: Text("Sign Up"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal, // Button color
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30.0),
+                ),
+                elevation: 5,
+              ),
+              child: Text(
+                "Sign Up",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
-            if (errorMessage.isNotEmpty)
-              Text(errorMessage, style: TextStyle(color: Colors.red)),
+            if (errorMessage.isNotEmpty) ...[
+              SizedBox(height: 16),
+              Text(
+                errorMessage,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Already have an account?"),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushReplacementNamed(context, '/login');
+                  },
+                  child: Text(
+                    "Log In",
+                    style: TextStyle(
+                      color: Colors.teal,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.teal),
+        hintText: "Enter your $label",
+        hintStyle: TextStyle(color: Colors.grey),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.teal, width: 2),
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey, width: 1),
+          borderRadius: BorderRadius.circular(12.0),
         ),
       ),
     );

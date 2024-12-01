@@ -61,27 +61,150 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: InputDecoration(labelText: 'Email'),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text('Login'),
+        backgroundColor: Colors.teal,
+        elevation: 0,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(height: 50),
+                Icon(
+                  Icons.lock,
+                  size: 120,
+                  color: Colors.teal,
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Welcome Back!',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Please login to your account.',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 40),
+                // Email Field
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    labelText: 'Email',
+                    labelStyle: TextStyle(color: Colors.teal),
+                    prefixIcon: Icon(Icons.email, color: Colors.teal),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 20),
+                // Password Field
+                TextField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: Colors.teal),
+                    prefixIcon: Icon(Icons.lock, color: Colors.teal),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+                  ),
+                  obscureText: true,
+                ),
+                SizedBox(height: 30),
+                // Login Button
+                ElevatedButton(
+                  onPressed: _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        Colors.teal, // Button color (instead of 'primary')
+                    padding:
+                        EdgeInsets.symmetric(vertical: 16.0, horizontal: 100.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(30.0), // More rounded corners
+                    ),
+                    elevation: 5, // Subtle shadow
+                  ),
+                  child: Text(
+                    'Login',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 20),
+                // Sign Up Navigation
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/signup'),
+                  child: Text(
+                    'Create Account',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.teal,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                // Forgot Password
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Forgot your password? ',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to Forgot Password Screen (optional)
+                      },
+                      child: Text(
+                        'Reset here',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.teal,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 50),
+              ],
             ),
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
-              obscureText: true,
-            ),
-            SizedBox(height: 20),
-            ElevatedButton(onPressed: _login, child: Text('Login')),
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/signup'),
-              child: Text('Create Account'),
-            ),
-          ],
+          ),
         ),
       ),
     );
