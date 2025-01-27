@@ -15,12 +15,12 @@ UI/UX Improvements: The user interface will continue to be enhanced for a better
 Screenshots
 Below are some screenshots showcasing the progress of the project:
 
-<img src="screenshot/screenshot1.png" width="500" />  
-<img src="screenshot/screenshot2.png" width="500" />  
-<img src="screenshot/screenshot3.png" width="500" />  
-<img src="screenshot/screenshot4.png" width="500" />  
-<img src="screenshot/screenshot5.png" width="500" />  
-<img src="screenshot/screenshot6.png" width="500" />
+<img src="screenshots/screenshot1.png" width="500" />  
+<img src="screenshots/screenshot2.png" width="500" />  
+<img src="screenshots/screenshot3.png" width="500" />  
+<img src="screenshots/screenshot4.png" width="500" />  
+<img src="screenshots/screenshot5.png" width="500" />  
+<img src="screenshots/screenshot6.png" width="500" />
 
 
 
