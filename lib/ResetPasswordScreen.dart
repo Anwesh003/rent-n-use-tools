@@ -1,5 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'main.dart'; // Import to access ThemeProvider
 
 class ResetPasswordScreen extends StatefulWidget {
   @override
@@ -77,12 +80,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Reset Password'),
         backgroundColor: Colors.teal,
-        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(
+              themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+            ),
+            onPressed: () {
+              themeProvider.toggleTheme();
+            },
+          ),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -104,7 +117,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: Colors.teal,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
                 SizedBox(height: 10),
@@ -112,7 +125,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   'Enter your email to receive a reset link.',
                   style: TextStyle(
                     fontSize: 18,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
                 SizedBox(height: 40),
@@ -121,9 +134,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   controller: _emailController,
                   decoration: InputDecoration(
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: Theme.of(context).cardColor,
                     labelText: 'Email',
-                    labelStyle: TextStyle(color: Colors.teal),
+                    labelStyle: TextStyle(color: Theme.of(context).hintColor),
                     prefixIcon: Icon(Icons.email, color: Colors.teal),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),

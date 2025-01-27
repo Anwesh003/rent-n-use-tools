@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import 'main.dart';
 import 'menu.dart'; // Import Menu widget from menu.dart
 import 'profile.dart'; // Import ProfileScreen from profile.dart
 import 'settings.dart'; // Import SettingsScreen from settings.dart
@@ -14,176 +16,168 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1; // Default to Tools screen
-  bool _isVisible = true; // Flag to control visibility of appBar and bottomBar
-  bool _isMenuVisible = false; // Flag to control showing menu options as cards
-  bool _isProfileVisible =
-      false; // Flag to control visibility of Profile screen
-  bool _isSettingsVisible =
-      false; // Flag to control visibility of Settings screen
+  bool _isVisible = true; // Show appBar and bottomBar by default
+  bool _isMenuVisible = false; // Show menu options when true
+  bool _isProfileVisible = false; // Show Profile screen when true
+  bool _isSettingsVisible = false; // Show Settings screen when true
 
-  // List of screens to display
-  final List<Widget> _screens = [
-    StarScreen(), // Star Screen
-    ToolsScreen(), // Tools Screen
-    ProfileScreen(), // Profile Screen
-  ];
+  late final List<Widget> _screens;
 
-  // Function to handle bottom bar item tap
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+
+    // Ensure the user is logged in and initialize screens
+    if (user != null) {
+      _screens = [
+        StarScreen(userId: user.uid), // Star Screen
+        ToolsScreen(userId: user.uid), // Tools Screen with userId
+        ProfileScreen(), // Placeholder for Profile tab (not used)
+      ];
+    } else {
+      // Handle the case where user is not logged in
+      _screens = [
+        Center(child: Text('Please log in to access features.')),
+        Center(child: Text('Please log in to access features.')),
+        Center(child: Text('Please log in to access features.')),
+      ];
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      _isMenuVisible = false; // Hide menu when other tabs are selected
-      _isProfileVisible = false; // Hide profile if another tab is selected
-      _isSettingsVisible = false; // Hide settings if another tab is selected
+      _isMenuVisible = false;
+      _isProfileVisible = false;
+      _isSettingsVisible = false;
     });
   }
 
-  // Function to show Menu options as cards
   void _showMenu() {
     setState(() {
-      _isMenuVisible = true; // Show the menu (cards)
-      _selectedIndex =
-          2; // Set selected index to "Menu" tab when menu is visible
+      _isMenuVisible = true;
+      _isProfileVisible = false;
+      _isSettingsVisible = false;
     });
   }
 
-  // Function to navigate to the selected menu option
   void _onMenuOptionSelected(String option) {
     setState(() {
-      _isMenuVisible = false; // Hide menu when an option is selected
+      _isMenuVisible = false;
     });
 
     if (option == 'Profile') {
       setState(() {
-        _isProfileVisible = true; // Show profile inside the screen
-        _isSettingsVisible = false; // Hide settings when profile is visible
+        _isProfileVisible = true;
+        _isSettingsVisible = false;
       });
     } else if (option == 'Settings') {
       setState(() {
-        _isSettingsVisible = true; // Show settings inside the screen
-        _isProfileVisible = false; // Hide profile when settings is visible
+        _isSettingsVisible = true;
+        _isProfileVisible = false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
     return Scaffold(
       appBar: _isVisible
           ? AppBar(
-              title: Text('Welcome to Rent tools'),
+              title: Text('Rent and use'),
               actions: [
                 IconButton(
-                  icon: Icon(Icons.logout),
-                  onPressed: () async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.pushReplacementNamed(
-                        context, '/login'); // Redirect to Login
+                  icon: Icon(
+                    isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                  ),
+                  onPressed: () {
+                    themeProvider.toggleTheme();
                   },
                 ),
               ],
             )
           : null,
       body: _isMenuVisible
-          ? Menu(
-              onMenuOptionSelected:
-                  _onMenuOptionSelected) // Use the Menu widget
+          ? Menu(onMenuOptionSelected: _onMenuOptionSelected)
           : _isProfileVisible
-              ? ProfileScreen() // Show ProfileScreen within the body
+              ? ProfileScreen()
               : _isSettingsVisible
-                  ? SettingsScreen() // Show SettingsScreen within the body
+                  ? SettingsScreen()
                   : IndexedStack(
-                      index:
-                          _selectedIndex, // Displays the selected screen based on index
+                      index: _selectedIndex,
                       children: _screens,
                     ),
       bottomNavigationBar: _isVisible
           ? BottomAppBar(
               child: Container(
-                height: 20, // Set the height of the BottomAppBar here
+                height: 60,
+                color: isDarkMode ? Colors.black : Colors.white,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    GestureDetector(
-                      onTap: () => _onItemTapped(0), // Navigate to StarScreen
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.star,
-                            color: _selectedIndex == 0
-                                ? Colors.blue
-                                : Colors.black,
-                            size: 20, // Adjust icon size
-                          ),
-                          Text(
-                            'Star',
-                            style: TextStyle(
-                              color: _selectedIndex == 0
-                                  ? Colors.blue
-                                  : Colors.black,
-                              fontSize: 12, // Reduce text size
-                            ),
-                          ),
-                        ],
-                      ),
+                    _buildBottomNavigationBarItem(
+                      icon: Icons.star,
+                      label: 'Star',
+                      index: 0,
+                      isDarkMode: isDarkMode,
                     ),
-                    GestureDetector(
-                      onTap: () => _onItemTapped(1), // Navigate to ToolsScreen
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.home,
-                            color: _selectedIndex == 1
-                                ? Colors.blue
-                                : Colors.black,
-                            size: 20, // Adjust icon size
-                          ),
-                          Text(
-                            'Home',
-                            style: TextStyle(
-                              color: _selectedIndex == 1
-                                  ? Colors.blue
-                                  : Colors.black,
-                              fontSize: 12, // Reduce text size
-                            ),
-                          ),
-                        ],
-                      ),
+                    _buildBottomNavigationBarItem(
+                      icon: Icons.home,
+                      label: 'Home',
+                      index: 1,
+                      isDarkMode: isDarkMode,
                     ),
-                    // Menu button, which replaces Profile
-                    GestureDetector(
-                      onTap: _showMenu, // Show the menu cards when clicked
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.menu,
-                            color: _selectedIndex == 2
-                                ? Colors.blue
-                                : Colors.black,
-                            size: 20, // Adjust icon size
-                          ),
-                          Text(
-                            'Menu',
-                            style: TextStyle(
-                              color: _selectedIndex == 2
-                                  ? Colors.blue
-                                  : Colors.black,
-                              fontSize: 12, // Reduce text size
-                            ),
-                          ),
-                        ],
-                      ),
+                    _buildBottomNavigationBarItem(
+                      icon: Icons.menu,
+                      label: 'Menu',
+                      index: 2,
+                      isDarkMode: isDarkMode,
+                      onTap: _showMenu,
                     ),
                   ],
                 ),
               ),
-              color: Colors.white,
-              elevation: 10,
+              elevation: 8,
             )
           : null,
+    );
+  }
+
+  Widget _buildBottomNavigationBarItem({
+    required IconData icon,
+    required String label,
+    required int index,
+    required bool isDarkMode,
+    VoidCallback? onTap,
+  }) {
+    final isSelected = _selectedIndex == index && !_isMenuVisible;
+    return GestureDetector(
+      onTap: onTap ?? () => _onItemTapped(index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isSelected
+                ? (isDarkMode ? Colors.tealAccent : Colors.blue)
+                : (isDarkMode ? Colors.white54 : Colors.black),
+            size: 24,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected
+                  ? (isDarkMode ? Colors.tealAccent : Colors.blue)
+                  : (isDarkMode ? Colors.white54 : Colors.black),
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

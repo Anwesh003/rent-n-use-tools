@@ -6,54 +6,54 @@ import 'see_your_tools_page.dart'; // Import See Your Tools Page
 class ToolsProviderPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // Determine if the theme is light or dark
+    bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Become Tools Provider'),
-        backgroundColor: Color.fromARGB(255, 135, 211, 255), // AppBar color
-        elevation: 0, // Remove the shadow
+        title: const Text('Become Tools Provider'),
+        backgroundColor: Colors.teal,
+        elevation: 0,
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color.fromARGB(255, 25, 125, 255),
-              Color.fromARGB(255, 33, 6, 153)
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: isDarkMode
+              ? Colors.black
+              : Colors.white, // Set background color based on theme
         ),
-        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 50),
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Title with a larger font size
+            // Title
             Text(
               'Welcome to Tools Provider Page',
               style: TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: isDarkMode
+                    ? Colors.white
+                    : Colors.black, // Set text color based on theme
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: 50),
+            const SizedBox(height: 50),
             // Button to "See Your Tools"
             _buildButton(
               context,
               'See Your Tools',
               Icons.visibility,
-              Colors.blue,
+              Colors.teal,
               SeeYourToolsPage(),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
             // Button to "Put It to Rent"
             _buildButton(
               context,
               'Put It to Rent',
               Icons.add_business,
-              Colors.green,
+              Colors.teal,
               PutItToRentPage(),
             ),
           ],
@@ -62,33 +62,33 @@ class ToolsProviderPage extends StatelessWidget {
     );
   }
 
-  // A reusable button builder to reduce redundancy
-  Widget _buildButton(BuildContext context, String text, IconData icon,
-      Color color, Widget targetPage) {
+  // Reusable button builder
+  Widget _buildButton(
+    BuildContext context,
+    String text,
+    IconData icon,
+    Color color,
+    Widget targetPage,
+  ) {
     return ElevatedButton.icon(
       onPressed: () {
-        // Navigate to the corresponding page
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => targetPage),
         );
       },
-      icon: Icon(
-        icon,
-        color: Colors.white,
-        size: 24,
-      ),
+      icon: Icon(icon, color: Colors.white, size: 24),
       label: Text(
         text,
-        style: TextStyle(fontSize: 18, color: Colors.white),
+        style: const TextStyle(fontSize: 18, color: Colors.white),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: color, // Use backgroundColor instead of primary
-        padding: EdgeInsets.symmetric(vertical: 15, horizontal: 40),
+        backgroundColor: color,
+        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 40.0),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30), // Rounded corners
+          borderRadius: BorderRadius.circular(30),
         ),
-        elevation: 5, // Button shadow for a modern look
+        elevation: 5,
       ),
     );
   }

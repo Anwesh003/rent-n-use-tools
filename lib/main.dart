@@ -1,33 +1,83 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'ResetPasswordScreen.dart';
-import 'home_screen.dart'; // Import HomeScreen
+import 'home_screen.dart';
 import 'login_screen.dart';
-import 'signup_screen.dart'; // Import SignUpScreen
+import 'signup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
   runApp(MyApp());
+}
+
+class ThemeProvider extends ChangeNotifier {
+  bool _isDarkMode = false;
+
+  bool get isDarkMode => _isDarkMode;
+
+  void toggleTheme() {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+  }
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Rent and Use',
-      initialRoute: '/', // Initial route (AuthCheck widget)
-      routes: {
-        '/': (context) => AuthCheck(),
-        '/home': (context) => HomeScreen(),
-        '/login': (context) => LoginScreen(),
-        '/reset-password': (context) => ResetPasswordScreen(),
-        '/signup': (context) => SignUpScreen(), // Add route for SignUpScreen
-      },
+    return ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Rent and Use',
+            theme: ThemeData(
+              brightness: Brightness.light,
+              primarySwatch: Colors.teal,
+              scaffoldBackgroundColor: Colors.white,
+              appBarTheme: AppBarTheme(
+                color: Colors.teal,
+                iconTheme: IconThemeData(color: Colors.white),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            darkTheme: ThemeData(
+              brightness: Brightness.dark,
+              primarySwatch: Colors.teal,
+              scaffoldBackgroundColor: Colors.black,
+              appBarTheme: AppBarTheme(
+                color: Colors.teal,
+                iconTheme: IconThemeData(color: Colors.white),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
+            themeMode:
+                themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            initialRoute: '/',
+            routes: {
+              '/': (context) => AuthCheck(),
+              '/home': (context) => HomeScreen(),
+              '/login': (context) => LoginScreen(),
+              '/signup': (context) => SignUpScreen(),
+              '/reset-password': (context) => ResetPasswordScreen(),
+            },
+          );
+        },
+      ),
     );
   }
 }
@@ -39,11 +89,13 @@ class AuthCheck extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         } else if (snapshot.hasData) {
-          return HomeScreen(); // User is logged in, navigate to HomeScreen
+          return HomeScreen();
         } else {
-          return LoginScreen(); // User is not logged in, navigate to LoginScreen
+          return LoginScreen();
         }
       },
     );

@@ -6,6 +6,7 @@ class SeeYourToolsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     // Check if user is logged in
     if (user == null) {
@@ -17,7 +18,7 @@ class SeeYourToolsPage extends StatelessWidget {
             style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.redAccent),
+                color: isDarkMode ? Colors.white : Colors.redAccent),
           ),
         ),
       );
@@ -52,8 +53,13 @@ class SeeYourToolsPage extends StatelessWidget {
           // Handle no tools
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
-              child: Text('You have no tools listed.',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+              child: Text(
+                'You have no tools listed.',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: isDarkMode ? Colors.white : Colors.grey[600],
+                ),
+              ),
             );
           }
 
@@ -66,55 +72,88 @@ class SeeYourToolsPage extends StatelessWidget {
               final tool = tools[index];
 
               return Card(
-                margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                elevation: 6,
+                margin: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                elevation: 8, // Increased elevation for a stronger shadow
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius:
+                      BorderRadius.circular(16), // Softer rounded corners
                 ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.all(16),
-                  title: Text(
-                    tool['toolName'],
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.teal),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 8),
-                      Text('Quantity: ${tool['quantity']}',
-                          style: TextStyle(fontSize: 16, color: Colors.black)),
-                      Text('Price: \$${tool['price']} per day',
-                          style: TextStyle(fontSize: 16, color: Colors.green)),
-                      Text('Location: ${tool['location']}',
-                          style: TextStyle(fontSize: 16, color: Colors.black)),
-                      Text('Contact: ${tool['contact']}',
-                          style: TextStyle(fontSize: 16, color: Colors.blue)),
-                      SizedBox(height: 10),
-                      Text('Description:',
+                color: isDarkMode
+                    ? Colors.grey[850]
+                    : Colors.white, // Background color based on theme
+                child: InkWell(
+                  onTap: () {
+                    // You can add onTap action if needed
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  splashColor:
+                      Colors.teal.withOpacity(0.3), // Splash effect on press
+                  highlightColor: Colors.teal.withOpacity(0.1),
+                  child: Padding(
+                    padding: const EdgeInsets.all(
+                        16.0), // Increased padding for better readability
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tool['toolName'],
                           style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black)),
-                      Text(tool['description'],
-                          style:
-                              TextStyle(fontSize: 14, color: Colors.grey[600])),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: () async {
-                      // Delete the tool when the delete button is pressed
-                      await FirebaseFirestore.instance
-                          .collection('tools')
-                          .doc(tool.id)
-                          .delete();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Tool deleted successfully!')),
-                      );
-                    },
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.teal,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Quantity: ${tool['quantity']}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Price: \$${tool['price']} per day',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color:
+                                isDarkMode ? Colors.greenAccent : Colors.green,
+                          ),
+                        ),
+                        Text(
+                          'Location: ${tool['location']}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          'Contact: ${tool['contact']}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: isDarkMode ? Colors.blueAccent : Colors.blue,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'Description:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          tool['description'],
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDarkMode
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

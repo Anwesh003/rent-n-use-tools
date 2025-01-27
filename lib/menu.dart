@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'tools_provider.dart'; // Import ToolsProviderPage
+import 'tools_provider.dart';
 
 class Menu extends StatelessWidget {
   final Function(String) onMenuOptionSelected;
@@ -10,6 +10,13 @@ class Menu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Determine theme colors dynamically for consistency
+    final theme = Theme.of(context);
+    final cardColor = theme.cardColor;
+    final shadowColor = theme.shadowColor;
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final iconColor = isDarkMode ? Colors.white : theme.primaryColor;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -20,24 +27,32 @@ class Menu extends StatelessWidget {
               icon: Icons.account_circle,
               title: 'Profile',
               onTap: () => onMenuOptionSelected('Profile'),
+              cardColor: cardColor,
+              shadowColor: shadowColor,
+              iconColor: iconColor,
             ),
             const SizedBox(height: 16),
             _buildMenuItem(
               icon: Icons.settings,
               title: 'Settings',
               onTap: () => onMenuOptionSelected('Settings'),
+              cardColor: cardColor,
+              shadowColor: shadowColor,
+              iconColor: iconColor,
             ),
             const SizedBox(height: 16),
             _buildMenuItem(
               icon: Icons.business_center,
               title: 'Become Tools Provider',
               onTap: () {
-                // Navigate directly to ToolsProviderPage from the Menu
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => ToolsProviderPage()),
                 );
               },
+              cardColor: cardColor,
+              shadowColor: shadowColor,
+              iconColor: iconColor,
             ),
             const SizedBox(height: 16),
             _buildMenuItem(
@@ -47,6 +62,9 @@ class Menu extends StatelessWidget {
                 await FirebaseAuth.instance.signOut();
                 Navigator.pushReplacementNamed(context, '/login');
               },
+              cardColor: cardColor,
+              shadowColor: shadowColor,
+              iconColor: iconColor,
             ),
           ],
         ),
@@ -58,27 +76,30 @@ class Menu extends StatelessWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    required Color cardColor,
+    required Color shadowColor,
+    required Color iconColor,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10), // Make tap area rounded
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardColor,
           borderRadius: BorderRadius.circular(10),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: shadowColor.withOpacity(0.2),
               blurRadius: 8,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.blue, size: 28),
-            SizedBox(width: 16),
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 16),
             Text(
               title,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
