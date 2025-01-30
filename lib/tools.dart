@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class ToolsScreen extends StatefulWidget {
-  final String userId; // User ID passed to the screen
+import 'BookingPage.dart'; // For booking functionality
+import 'FullToolDetails.dart'; // For full tool details
 
+class ToolsScreen extends StatefulWidget {
+  final String userId;
   ToolsScreen({required this.userId});
 
   @override
@@ -13,7 +15,6 @@ class ToolsScreen extends StatefulWidget {
 class _ToolsScreenState extends State<ToolsScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ScrollController _scrollController = ScrollController();
-
   List<DocumentSnapshot> _tools = [];
   Set<String> _starredToolIds = {};
   bool _isLoading = false;
@@ -38,7 +39,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
   Future<void> _fetchTools() async {
     if (_isLoading) return;
-
     setState(() {
       _isLoading = true;
     });
@@ -46,6 +46,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
     try {
       Query query = _firestore
           .collection('tools')
+          .where('isAvailable', isEqualTo: true)
           .orderBy('toolName')
           .limit(_documentLimit);
 
@@ -102,7 +103,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
           .doc(toolId);
 
       final doc = await starredDoc.get();
-
       if (doc.exists) {
         await starredDoc.delete();
         setState(() {
@@ -124,113 +124,199 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDarkMode ? Colors.black : Colors.grey[200],
-      body: _tools.isEmpty && _isLoading
-          ? Center(child: CircularProgressIndicator())
+      body: _tools.isEmpty && !_isLoading
+          ? Center(
+              child: Text(
+                'No tools are currently available.',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: isDarkMode ? Colors.white : Colors.grey[600],
+                ),
+              ),
+            )
           : ListView.builder(
               controller: _scrollController,
-              padding: EdgeInsets.all(16.0),
               itemCount: _tools.length + (_hasMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _tools.length) {
                   return Center(child: CircularProgressIndicator());
                 }
 
-                final tool = _tools[index].data() as Map<String, dynamic>;
-                final toolId = _tools[index].id;
+                final tool = _tools[index];
+                final imageUrl = tool['imageUrl'] as String?;
+                final int quantity =
+                    tool['quantity'] is num ? tool['quantity'].toInt() : 0;
+                final double price =
+                    tool['price'] is num ? tool['price'].toDouble() : 0.0;
+                final bool isAvailable = tool['isAvailable'] ?? true;
 
                 return Card(
+                  margin: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  elevation: 8,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.0),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 6,
-                  margin: EdgeInsets.symmetric(vertical: 8.0),
                   color: isDarkMode ? Colors.grey[850] : Colors.white,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              tool['toolName'] ?? 'Unknown Tool',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color:
-                                    isDarkMode ? Colors.white : Colors.black87,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FullToolDetails(
+                            toolId: tool.id, // Firestore document ID
+                            toolName: tool['toolName'] ?? 'Unknown Tool',
+                            totalQuantity:
+                                tool['quantity'] ?? 0, // Correct parameter name
+                            price: tool['price']?.toDouble() ?? 0.0,
+                            location: tool['location'] ?? 'N/A',
+                            contact: tool['contact'] ?? 'N/A',
+                            description: tool['description'] ??
+                                'No description available',
+                            imageUrl: tool['imageUrl'] ?? '',
+                            isAvailable: tool['isAvailable'] ?? false,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Tool Image
+                          Container(
+                            height: 150,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: imageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      imageUrl,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      'No image uploaded yet',
+                                      style: TextStyle(
+                                          color: Colors.grey[700],
+                                          fontSize: 16),
+                                    ),
+                                  ),
+                          ),
+                          SizedBox(height: 16),
+
+                          // Tool Name and Star Button
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  tool['toolName'] ?? 'Unknown Tool',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        isDarkMode ? Colors.white : Colors.teal,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  _starredToolIds.contains(tool.id)
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  color: Colors.amber,
+                                ),
+                                onPressed: () => _toggleStar(tool.id),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 10),
+
+                          // Price
+                          Text(
+                            'Price: ₹${price.toStringAsFixed(2)} per day',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: isDarkMode
+                                  ? Colors.greenAccent
+                                  : Colors.green,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+
+                          // Quantity
+                          Text(
+                            'Quantity: $quantity',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+
+                          // Location
+                          Text(
+                            'Location: ${tool['location'] ?? 'N/A'}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color:
+                                  isDarkMode ? Colors.white70 : Colors.black87,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+
+                          // Description
+                          Text(
+                            'Description: ${tool['description'] ?? 'No description available'}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDarkMode
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
+                            ),
+                          ),
+                          SizedBox(height: 16),
+
+                          // Book Now Button
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => BookingPage(
+                                    toolId: tool.id,
+                                    toolName: tool['toolName'],
+                                    price: price,
+                                    totalQuantity: quantity,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Text('Book Now'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                            IconButton(
-                              icon: Icon(
-                                _starredToolIds.contains(toolId)
-                                    ? Icons.star
-                                    : Icons.star_border,
-                                color: Colors.orange,
-                              ),
-                              onPressed: () => _toggleStar(toolId),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          tool['description'] ?? 'No description available',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isDarkMode ? Colors.white70 : Colors.black54,
                           ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Quantity: ${tool['quantity'] ?? 'N/A'}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: isDarkMode ? Colors.white70 : Colors.black54,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Price: \$${tool['price'] ?? 'N/A'} per day',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color:
-                                isDarkMode ? Colors.greenAccent : Colors.green,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Contact: ${tool['contact'] ?? 'N/A'}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode ? Colors.blueAccent : Colors.blue,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Address: ${tool['location'] ?? 'N/A'}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode
-                                ? Colors.orangeAccent
-                                : Colors.orange,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
               },
             ),
     );
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 }

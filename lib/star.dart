@@ -1,38 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'FullToolDetails.dart'; // Import the FullToolDetails page
+
 class StarScreen extends StatelessWidget {
   final String userId; // User ID passed to the screen
 
   StarScreen({required this.userId});
 
   Future<List<DocumentSnapshot>> _fetchStarredTools() async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('starred_tools')
-        .doc(userId)
-        .collection('tools')
-        .get();
+    try {
+      // Fetch starred tool IDs
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('starred_tools')
+          .doc(userId)
+          .collection('tools')
+          .get();
 
-    final toolIds = querySnapshot.docs.map((doc) => doc.id).toList();
+      final toolIds = querySnapshot.docs.map((doc) => doc.id).toList();
+      if (toolIds.isEmpty) {
+        return [];
+      }
 
-    if (toolIds.isEmpty) {
+      // Fetch tool details using the tool IDs
+      final toolsSnapshot = await FirebaseFirestore.instance
+          .collection('tools')
+          .where(FieldPath.documentId, whereIn: toolIds)
+          .get();
+
+      return toolsSnapshot.docs;
+    } catch (e) {
+      print('Error fetching starred tools: $e');
       return [];
     }
-
-    final toolsSnapshot = await FirebaseFirestore.instance
-        .collection('tools')
-        .where(FieldPath.documentId, whereIn: toolIds)
-        .get();
-
-    return toolsSnapshot.docs;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar(
-      //   title: Text('Starred Tools'),
-      // ),
       body: FutureBuilder<List<DocumentSnapshot>>(
         future: _fetchStarredTools(),
         builder: (context, snapshot) {
@@ -41,7 +46,19 @@ class StarScreen extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No starred tools yet!'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.star_border, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No starred tools yet!',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                ],
+              ),
+            );
           }
 
           final tools = snapshot.data!;
@@ -50,35 +67,107 @@ class StarScreen extends StatelessWidget {
             itemCount: tools.length,
             itemBuilder: (context, index) {
               final tool = tools[index].data() as Map<String, dynamic>;
+              final toolId = tools[index].id;
+
               return Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16.0),
                 ),
                 elevation: 6,
                 margin: EdgeInsets.symmetric(vertical: 8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        tool['toolName'] ?? 'Unknown Tool',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FullToolDetails(
+                          toolId: toolId, // Pass the Firestore document ID
+                          toolName: tool['toolName'] ?? 'Unknown Tool',
+                          totalQuantity:
+                              tool['quantity'] ?? 0, // Correct parameter name
+                          price: tool['price']?.toDouble() ?? 0.0,
+                          location: tool['location'] ?? 'N/A',
+                          contact: tool['contact'] ?? 'N/A',
+                          description:
+                              tool['description'] ?? 'No description available',
+                          imageUrl: tool['imageUrl'] ?? '',
+                          isAvailable: tool['isAvailable'] ?? false,
                         ),
                       ),
-                      SizedBox(height: 8),
-                      Text(tool['description'] ?? 'No description available'),
-                      SizedBox(height: 4),
-                      Text('Quantity: ${tool['quantity'] ?? 'N/A'}'),
-                      SizedBox(height: 4),
-                      Text('Price: \$${tool['price'] ?? 'N/A'} per day'),
-                      SizedBox(height: 8),
-                      Text('Contact: ${tool['contact'] ?? 'N/A'}'),
-                      SizedBox(height: 4),
-                      Text('Address: ${tool['location'] ?? 'N/A'}'),
-                    ],
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (tool['imageUrl'] != null)
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  tool['imageUrl'],
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            else
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(Icons.image,
+                                    size: 40, color: Colors.white),
+                              ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    tool['toolName'] ?? 'Unknown Tool',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(tool['description'] ??
+                                      'No description available'),
+                                  SizedBox(height: 4),
+                                  Text(
+                                      'Quantity: ${tool['quantity'] ?? 'N/A'}'),
+                                  SizedBox(height: 4),
+                                  Text(
+                                      'Price: \$${tool['price'] ?? 'N/A'} per day'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              tool['isAvailable'] == true
+                                  ? 'Available'
+                                  : 'Not Available',
+                              style: TextStyle(
+                                color: tool['isAvailable'] == true
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

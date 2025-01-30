@@ -29,9 +29,9 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
 
   File? _selectedImage;
   bool _isUploading = false;
+  bool _isAvailable = true; // New field for availability
 
   final ImagePicker _imagePicker = ImagePicker();
-
   Timer? _debounce;
 
   void _validateField() {
@@ -83,11 +83,9 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
-
       final storageRef = FirebaseStorage.instance.ref().child(
           'tool_images/${user.uid}_${DateTime.now().millisecondsSinceEpoch}');
       final uploadTask = storageRef.putFile(image);
-
       final snapshot = await uploadTask;
       return await snapshot.ref.getDownloadURL();
     } catch (e) {
@@ -124,23 +122,26 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
       imageUrl = await _uploadImage(_selectedImage!);
     }
 
+    // Parse quantity and price as numbers
+    final int quantity = int.parse(_quantityController.text);
+    final double price = double.parse(_priceController.text);
+
     final toolData = {
       'toolName': _toolNameController.text,
-      'quantity': _quantityController.text,
+      'quantity': quantity, // Store as int
       'description': _descriptionController.text,
-      'price': _priceController.text,
+      'price': price, // Store as double
       'location': _locationController.text,
       'contact': _contactController.text,
       'userId': user.uid,
       'imageUrl': imageUrl, // Save the image URL
+      'isAvailable': _isAvailable, // Add availability field
     };
 
     try {
       await FirebaseFirestore.instance.collection('tools').add(toolData);
-
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Tool successfully put to rent!")));
-
       _clearForm();
     } catch (e) {
       print("Error saving tool: $e");
@@ -166,6 +167,7 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
       _priceError = null;
       _locationError = null;
       _contactError = null;
+      _isAvailable = true; // Reset availability to true
     });
   }
 
@@ -228,6 +230,25 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
                   label: 'Contact Information',
                   icon: Icons.phone,
                   errorMessage: _contactError),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Availability:',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Switch(
+                    value: _isAvailable,
+                    onChanged: (value) {
+                      setState(() {
+                        _isAvailable = value;
+                      });
+                    },
+                    activeColor: Colors.teal,
+                  ),
+                ],
+              ),
               SizedBox(height: 20),
               GestureDetector(
                 onTap: _pickImage,

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'tools_provider.dart';
+import 'your_rentals_page.dart';
 
 class Menu extends StatelessWidget {
   final Function(String) onMenuOptionSelected;
@@ -48,6 +49,20 @@ class Menu extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => ToolsProviderPage()),
+                );
+              },
+              cardColor: cardColor,
+              shadowColor: shadowColor,
+              iconColor: iconColor,
+            ),
+            const SizedBox(height: 16),
+            _buildMenuItem(
+              icon: Icons.shopping_cart,
+              title: 'Your Rentals',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => YourRentalsPage()),
                 );
               },
               cardColor: cardColor,

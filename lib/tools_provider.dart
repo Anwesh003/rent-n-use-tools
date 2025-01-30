@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'put_it_to_rent_page.dart'; // Import Put It to Rent Page
+import 'rented_tools_page.dart'; // Import Rented Tools Page
 import 'see_your_tools_page.dart'; // Import See Your Tools Page
 
 class ToolsProviderPage extends StatelessWidget {
@@ -8,7 +9,6 @@ class ToolsProviderPage extends StatelessWidget {
   Widget build(BuildContext context) {
     // Determine if the theme is light or dark
     bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Become Tools Provider'),
@@ -55,6 +55,17 @@ class ToolsProviderPage extends StatelessWidget {
               Icons.add_business,
               Colors.teal,
               PutItToRentPage(),
+            ),
+            const SizedBox(height: 30),
+            // Button to "Who Rented/Booked Your Tools"
+            _buildButton(
+              context,
+              'Who Rented/Booked Your Tools',
+              Icons.people,
+              Colors.teal,
+              RentedToolsPage(
+                  userId:
+                      'currentUser'), // Replace 'currentUser' with actual user ID
             ),
           ],
         ),
