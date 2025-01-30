@@ -27,10 +27,8 @@ Renters can book tools directly through the app, selecting start and end dates a
 ## Screenshots
 Below are some screenshots showcasing the progress of the project:
 
-<img src="screenshots/screenshot1.png" width="250" />  
-*Figure 1: Login Screen* |
-<img src="screenshots/screenshot2.png" width="250" />  
-*Figure 2: Reset Password Screen*
+<img src="screenshots/screenshot1.png" width="250" /> | <img src="screenshots/screenshot2.png" width="250" />  
+*Figure 1: Login Screen* | *Figure 2: Reset Password Screen*
 <img src="screenshots/screenshot3.png" width="250" />  
 *Figure 3: Home Screen* |
 <img src="screenshots/screenshot4.png" width="250" />  
