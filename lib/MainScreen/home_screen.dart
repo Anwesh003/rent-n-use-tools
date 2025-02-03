@@ -2,12 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'main.dart';
-import 'menu.dart'; // Import Menu widget from menu.dart
-import 'profile.dart'; // Import ProfileScreen from profile.dart
-import 'settings.dart'; // Import SettingsScreen from settings.dart
+import '../main.dart';
+import '../Menu/menu.dart'; // Import Menu widget from menu.dart
+import '../Menu/profile.dart'; // Import ProfileScreen from profile.dart
+import '../Menu/settings.dart'; // Import SettingsScreen from settings.dart
 import 'star.dart'; // Import StarScreen from star.dart
-import 'tools.dart'; // Import ToolsScreen from tools.dart
+import '../Menu/tools.dart'; // Import ToolsScreen from tools.dart
 
 class HomeScreen extends StatefulWidget {
   @override

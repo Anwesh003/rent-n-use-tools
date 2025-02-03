@@ -1,28 +1,34 @@
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'main.dart'; // Import to access ThemeProvider
+import '../auth_service.dart';
+import '../main.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
+class LoginScreen extends StatefulWidget {
   @override
-  _ResetPasswordScreenState createState() => _ResetPasswordScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
-  String _emailError = '';
-  bool _isLoading = false;
+  final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
-  void _resetPassword() async {
+  bool _isLoading = false;
+  String _emailError = '';
+  String _passwordError = '';
+
+  void _login() async {
     String email = _emailController.text.trim();
+    String password = _passwordController.text.trim();
 
     setState(() {
       _emailError = '';
+      _passwordError = '';
       _isLoading = true;
     });
 
-    // Validate email format
     if (email.isEmpty ||
         !RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$')
             .hasMatch(email)) {
@@ -33,48 +39,40 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       return;
     }
 
+    if (password.isEmpty || password.length < 6) {
+      setState(() {
+        _passwordError = 'Password must be at least 6 characters long';
+        _isLoading = false;
+      });
+      return;
+    }
+
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-      setState(() {
-        _isLoading = false;
-      });
-      // Show success message
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text("Password Reset"),
-            content: Text("A password reset link has been sent to your email."),
-            actions: <Widget>[
-              TextButton(
-                child: Text("OK"),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
+      var user = await _authService.login(email, password);
+
+      if (user != null) {
+        if (user.emailVerified) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          await user.sendEmailVerification();
+          _showAlertDialog(
+            "Verify Email",
+            "Please verify your email before proceeding.",
           );
-        },
-      );
+          FirebaseAuth.instance.signOut();
+        }
+      } else {
+        _showAlertDialog(
+          "Login Failed",
+          "Invalid email or password. Please try again.",
+        );
+      }
     } catch (e) {
+      _showAlertDialog("Login Error", "An error occurred: $e");
+    } finally {
       setState(() {
         _isLoading = false;
       });
-      print("Reset Password Error: $e");
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text("Error"),
-            content:
-                Text("Failed to send password reset email. Please try again."),
-            actions: <Widget>[
-              TextButton(
-                child: Text("OK"),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
-          );
-        },
-      );
     }
   }
 
@@ -84,7 +82,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Reset Password'),
+        title: Text('Login'),
         backgroundColor: Colors.teal,
         actions: [
           IconButton(
@@ -113,7 +111,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 SizedBox(height: 20),
                 Text(
-                  'Reset Password',
+                  'Login',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -122,14 +120,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Enter your email to receive a reset link.',
+                  'Enter your email and password to login.',
                   style: TextStyle(
                     fontSize: 18,
                     color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
                 SizedBox(height: 40),
-                // Email Field for Reset
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
@@ -148,10 +145,28 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   ),
                   keyboardType: TextInputType.emailAddress,
                 ),
+                SizedBox(height: 20),
+                TextField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Theme.of(context).cardColor,
+                    labelText: 'Password',
+                    labelStyle: TextStyle(color: Theme.of(context).hintColor),
+                    prefixIcon: Icon(Icons.lock, color: Colors.teal),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+                    errorText: _passwordError.isEmpty ? null : _passwordError,
+                  ),
+                  obscureText: true,
+                ),
                 SizedBox(height: 30),
-                // Reset Button
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _resetPassword,
+                  onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     padding:
@@ -164,7 +179,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
                       : Text(
-                          'Send Reset Link',
+                          'Login',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -173,11 +188,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         ),
                 ),
                 SizedBox(height: 20),
-                // Navigate Back to Login (without routing to the login page directly)
                 TextButton(
-                  onPressed: () => Navigator.pop(context), // Pop the screen
+                  onPressed: () => Navigator.pushNamed(context, '/signup'),
                   child: Text(
-                    'Back to Login',
+                    'Create Account',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.teal,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/reset-password'),
+                  child: Text(
+                    'Forgot Password?',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.teal,
@@ -191,6 +217,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showAlertDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: <Widget>[
+            TextButton(
+              child: Text("OK"),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -3,10 +3,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'ResetPasswordScreen.dart';
-import 'home_screen.dart';
-import 'login_screen.dart';
-import 'signup_screen.dart';
+import 'Logins/ResetPasswordScreen.dart';
+import 'MainScreen/home_screen.dart';
+import 'Logins/login_screen.dart';
+import 'Logins/signup_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

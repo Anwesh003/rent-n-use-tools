@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import 'BookingPage.dart'; // For booking functionality
-import 'FullToolDetails.dart'; // For full tool details
+import '../MainScreen/BookingPage.dart'; // For booking functionality
+import '../MainScreen/FullToolDetails.dart'; // For full tool details
 
 class ToolsScreen extends StatefulWidget {
   final String userId;
