@@ -19,9 +19,8 @@ class YourRentalsPage extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
-            print('Error: ${snapshot.error}');
+            print('Error fetching rentals: ${snapshot.error}');
             return Center(
               child: Text(
                 'Something went wrong!',
@@ -29,11 +28,10 @@ class YourRentalsPage extends StatelessWidget {
               ),
             );
           }
-
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Text(
-                'No rentals found.',
+                'No tools available in the database.',
                 style: TextStyle(
                   fontSize: 18,
                   color: isDarkMode ? Colors.white : Colors.grey[600],
@@ -42,6 +40,7 @@ class YourRentalsPage extends StatelessWidget {
             );
           }
 
+          // Get the current user
           final currentUser = FirebaseAuth.instance.currentUser;
           if (currentUser == null) {
             return Center(
@@ -52,6 +51,7 @@ class YourRentalsPage extends StatelessWidget {
             );
           }
 
+          // Extract rented tools for the current user
           final tools = snapshot.data!.docs;
           final rentedTools = <Map<String, dynamic>>[];
 
@@ -64,15 +64,20 @@ class YourRentalsPage extends StatelessWidget {
             for (final booking in bookings) {
               if (booking['userId'] == currentUser.uid) {
                 rentedTools.add({
-                  'toolName': toolData['toolName'],
-                  'startDate': booking['startDate'],
-                  'endDate': booking['endDate'],
-                  'quantityBooked': booking['quantityBooked'],
+                  'toolName': toolData['toolName'] ?? 'Unnamed Tool',
+                  'price': toolData['price'] ?? 'N/A',
+                  'quantityBooked': booking['quantityBooked'] ?? 0,
+                  'description': toolData['description'] ?? 'No description',
+                  'imageUrl': toolData['imageUrl'] ?? '', // Optional image URL
+                  'toolOwnerUserId': toolData['userId'], // Owner's user ID
+                  'startDate': booking['startDate'] ?? 'Unknown Start Date',
+                  'endDate': booking['endDate'] ?? 'Unknown End Date',
                 });
               }
             }
           }
 
+          // If no rentals are found for the user
           if (rentedTools.isEmpty) {
             return Center(
               child: Text(
@@ -89,17 +94,148 @@ class YourRentalsPage extends StatelessWidget {
             itemCount: rentedTools.length,
             itemBuilder: (context, index) {
               final rental = rentedTools[index];
-              return ListTile(
-                leading: Icon(Icons.shopping_cart, color: Colors.teal),
-                title: Text(rental['toolName']),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Start Date: ${rental['startDate']}'),
-                    Text('End Date: ${rental['endDate']}'),
-                    Text('Quantity Booked: ${rental['quantityBooked']}'),
-                  ],
-                ),
+
+              // Fetch the owner's details from the users collection
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(rental['toolOwnerUserId'])
+                    .get(),
+                builder: (context, userSnapshot) {
+                  if (userSnapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                  if (userSnapshot.hasError || !userSnapshot.hasData) {
+                    return ListTile(
+                      title: Text('Owner details unavailable'),
+                    );
+                  }
+
+                  final userData =
+                      userSnapshot.data!.data() as Map<String, dynamic>?;
+                  final ownerName = userData?['name'] ?? 'Unknown Owner';
+                  final ownerAddress =
+                      '${userData?['house'] ?? ''}, ${userData?['area'] ?? ''}, ${userData?['city'] ?? ''}, ${userData?['state'] ?? ''}, ${userData?['pincode'] ?? ''}';
+
+                  return Card(
+                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Tool Image (if available)
+                          if (rental['imageUrl'].isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                rental['imageUrl'],
+                                height: 150,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(Icons.image_not_supported,
+                                      size: 50);
+                                },
+                              ),
+                            ),
+                          SizedBox(
+                              height: rental['imageUrl'].isNotEmpty ? 12 : 0),
+
+                          // Tool Name
+                          Text(
+                            rental['toolName'],
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+
+                          // Rental Details
+                          Text(
+                            'Price: ₹${rental['price']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Text(
+                            'Quantity Booked: ${rental['quantityBooked']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Text(
+                            'Description: ${rental['description']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+
+                          // Rental Dates
+                          Text(
+                            'Start Date: ${rental['startDate']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+                          Text(
+                            'End Date: ${rental['endDate']}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDarkMode ? Colors.white : Colors.black,
+                            ),
+                          ),
+
+                          // Tool Owner Details
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.person, size: 16, color: Colors.teal),
+                              SizedBox(width: 4),
+                              Text(
+                                'Owner: $ownerName',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color:
+                                      isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on,
+                                  size: 16, color: Colors.teal),
+                              SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  'Address: $ownerAddress',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               );
             },
           );

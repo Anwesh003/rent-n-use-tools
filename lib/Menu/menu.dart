@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../toolsprovider/tools_provider.dart';
+import 'profile.dart';
+import 'settings.dart';
 import 'your_rentals_page.dart';
 
 class Menu extends StatelessWidget {
@@ -24,10 +26,23 @@ class Menu extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Image.asset(
+              'assets/vcetlogo.png',
+              height: 125,
+              // width: 200,
+            ),
+            const SizedBox(height: 24),
             _buildMenuItem(
               icon: Icons.account_circle,
               title: 'Profile',
-              onTap: () => onMenuOptionSelected('Profile'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          ProfileScreen()), // Navigate to ProfilePage
+                );
+              },
               cardColor: cardColor,
               shadowColor: shadowColor,
               iconColor: iconColor,
@@ -36,7 +51,14 @@ class Menu extends StatelessWidget {
             _buildMenuItem(
               icon: Icons.settings,
               title: 'Settings',
-              onTap: () => onMenuOptionSelected('Settings'),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          SettingsScreen()), // Navigate to SettingsPage
+                );
+              },
               cardColor: cardColor,
               shadowColor: shadowColor,
               iconColor: iconColor,

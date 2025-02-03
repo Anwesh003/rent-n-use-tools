@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class RentedToolsPage extends StatelessWidget {
-  final String userId;
+  final String userId; // The ID of the user whose tools are being fetched
 
   RentedToolsPage({required this.userId});
 
@@ -25,9 +25,8 @@ class RentedToolsPage extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
-            print('Error: ${snapshot.error}');
+            print('Error fetching tools: ${snapshot.error}');
             return Center(
               child: Text(
                 'Something went wrong!',
@@ -35,9 +34,7 @@ class RentedToolsPage extends StatelessWidget {
               ),
             );
           }
-
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            print('No tools found for user ID: $userId');
             return Center(
               child: Text(
                 'No tools have been rented yet.',
@@ -50,31 +47,35 @@ class RentedToolsPage extends StatelessWidget {
           }
 
           final tools = snapshot.data!.docs;
-          print('Fetched Tools: ${tools.map((doc) => doc.data())}');
+
+          // Filter out tools that have no bookings
+          final rentedTools = tools.where((tool) {
+            final toolData = tool.data() as Map<String, dynamic>?;
+            final bookings =
+                List<Map<String, dynamic>>.from(toolData?['bookings'] ?? []);
+            return bookings.isNotEmpty;
+          }).toList();
+
+          if (rentedTools.isEmpty) {
+            return Center(
+              child: Text(
+                'No tools have been rented yet.',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: isDarkMode ? Colors.white : Colors.grey[600],
+                ),
+              ),
+            );
+          }
 
           return ListView.builder(
-            itemCount: tools.length,
+            itemCount: rentedTools.length,
             itemBuilder: (context, index) {
-              final tool = tools[index];
-              final toolData = tool.data() as Map<String, dynamic>?;
-              if (toolData == null) {
-                return ListTile(
-                  title: Text('Invalid Tool Data'),
-                  subtitle: Text('This tool has no valid information.'),
-                );
-              }
-
+              final tool = rentedTools[index];
+              final toolData = tool.data() as Map<String, dynamic>;
               final toolName = toolData['toolName'] ?? 'Unnamed Tool';
               final bookings =
                   List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
-              print('Tool Name: $toolName, Bookings: $bookings');
-
-              if (bookings.isEmpty) {
-                return ListTile(
-                  title: Text(toolName),
-                  subtitle: Text('No bookings yet'),
-                );
-              }
 
               return ExpansionTile(
                 title: Text(toolName),

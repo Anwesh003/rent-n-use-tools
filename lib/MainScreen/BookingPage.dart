@@ -36,18 +36,14 @@ class _BookingPageState extends State<BookingPage> {
     final toolDoc =
         await _firestore.collection('tools').doc(widget.toolId).get();
     final toolData = toolDoc.data();
-
     if (toolData == null) {
       print('Tool document not found for ID: ${widget.toolId}');
       return;
     }
-
     final toolOwnerId = toolData['userId'] as String?;
-
     // Fetch the current user's ID from Firebase Authentication
     final currentUser = FirebaseAuth.instance.currentUser;
     final currentUserId = currentUser?.uid;
-
     setState(() {
       _isOwner = toolOwnerId == currentUserId;
     });
@@ -57,22 +53,21 @@ class _BookingPageState extends State<BookingPage> {
       String toolId, DateTime startDate, DateTime endDate) async {
     final toolDoc = await _firestore.collection('tools').doc(toolId).get();
     final toolData = toolDoc.data();
-
     if (toolData == null) {
       throw Exception('Tool document not found for ID: $toolId');
     }
-
     final totalQuantity = toolData['quantity'] as int? ?? 0;
     final bookings =
         List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
-
     int bookedQuantity = 0;
+
     for (final booking in bookings) {
       final bookingStartDate = DateTime.parse(booking['startDate']);
       final bookingEndDate = DateTime.parse(booking['endDate']);
 
-      if (startDate.isBefore(bookingEndDate) &&
-          endDate.isAfter(bookingStartDate)) {
+      // Check for overlapping bookings
+      if (startDate.isBefore(bookingEndDate.add(Duration(days: 1))) &&
+          endDate.isAfter(bookingStartDate.subtract(Duration(days: 1)))) {
         bookedQuantity += (booking['quantityBooked'] ?? 0) as int;
       }
     }
@@ -87,25 +82,28 @@ class _BookingPageState extends State<BookingPage> {
       );
       return;
     }
-
     if (_startDate == null || _endDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select start and end dates.')),
       );
       return;
     }
-
+    if (_endDate!.isBefore(_startDate!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('End date must be after or equal to start date.')),
+      );
+      return;
+    }
     if (_quantityToBook <= 0 || _quantityToBook > widget.totalQuantity) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Invalid quantity selected.')),
       );
       return;
     }
-
     try {
       final availableQuantity =
           await getAvailableQuantity(widget.toolId, _startDate!, _endDate!);
-
       if (availableQuantity < _quantityToBook) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -114,35 +112,31 @@ class _BookingPageState extends State<BookingPage> {
         );
         return;
       }
-
       final toolRef = _firestore.collection('tools').doc(widget.toolId);
       final bookingData = {
-        'userId':
-            FirebaseAuth.instance.currentUser!.uid, // Use the actual user ID
+        'userId': FirebaseAuth.instance.currentUser!.uid,
         'startDate': _startDate!.toIso8601String(),
         'endDate': _endDate!.toIso8601String(),
         'quantityBooked': _quantityToBook,
       };
-
       await _firestore.runTransaction((transaction) async {
         final toolDoc = await transaction.get(toolRef);
         final toolData = toolDoc.data();
-
         if (toolData == null) {
           throw Exception('Tool document not found for ID: ${widget.toolId}');
         }
-
         final totalQuantity = toolData['quantity'] as int? ?? 0;
         final bookings =
             List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
-
         int bookedQuantity = 0;
+
         for (final booking in bookings) {
           final bookingStartDate = DateTime.parse(booking['startDate']);
           final bookingEndDate = DateTime.parse(booking['endDate']);
 
-          if (_startDate!.isBefore(bookingEndDate) &&
-              _endDate!.isAfter(bookingStartDate)) {
+          // Check for overlapping bookings
+          if (_startDate!.isBefore(bookingEndDate.add(Duration(days: 1))) &&
+              _endDate!.isAfter(bookingStartDate.subtract(Duration(days: 1)))) {
             bookedQuantity += (booking['quantityBooked'] ?? 0) as int;
           }
         }
@@ -150,16 +144,13 @@ class _BookingPageState extends State<BookingPage> {
         if ((totalQuantity - bookedQuantity) < _quantityToBook) {
           throw Exception("The tool is not available for the requested dates.");
         }
-
         transaction.update(toolRef, {
           'bookings': FieldValue.arrayUnion([bookingData]),
         });
-
         if ((totalQuantity - bookedQuantity - _quantityToBook) == 0) {
           transaction.update(toolRef, {'isAvailable': false});
         }
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Booking successful!')),
       );
@@ -206,6 +197,10 @@ class _BookingPageState extends State<BookingPage> {
                 if (selectedDate != null) {
                   setState(() {
                     _startDate = selectedDate;
+                    // Reset end date if it's before the new start date
+                    if (_endDate != null && _endDate!.isBefore(selectedDate)) {
+                      _endDate = null;
+                    }
                   });
                 }
               },
@@ -219,19 +214,21 @@ class _BookingPageState extends State<BookingPage> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             ElevatedButton(
-              onPressed: () async {
-                final selectedDate = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(Duration(days: 365)),
-                );
-                if (selectedDate != null) {
-                  setState(() {
-                    _endDate = selectedDate;
-                  });
-                }
-              },
+              onPressed: _startDate == null
+                  ? null // Disable end date selection until start date is selected
+                  : () async {
+                      final selectedDate = await showDatePicker(
+                        context: context,
+                        initialDate: _startDate!,
+                        firstDate: _startDate!,
+                        lastDate: DateTime.now().add(Duration(days: 365)),
+                      );
+                      if (selectedDate != null) {
+                        setState(() {
+                          _endDate = selectedDate;
+                        });
+                      }
+                    },
               child: Text(_endDate == null
                   ? 'Select End Date'
                   : 'End Date: ${_endDate!.toString().split(' ')[0]}'),

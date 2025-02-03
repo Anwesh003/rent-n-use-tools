@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
         builder: (context, themeProvider, child) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'Rent and Use',
+            title: 'Yantra Prasamvidha',
             theme: ThemeData(
               brightness: Brightness.light,
               primarySwatch: Colors.teal,

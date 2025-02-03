@@ -2,12 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../main.dart';
 import '../Menu/menu.dart'; // Import Menu widget from menu.dart
-import '../Menu/profile.dart'; // Import ProfileScreen from profile.dart
-import '../Menu/settings.dart'; // Import SettingsScreen from settings.dart
+import '../main.dart';
 import 'star.dart'; // Import StarScreen from star.dart
-import '../Menu/tools.dart'; // Import ToolsScreen from tools.dart
+import 'tools.dart'; // Import ToolsScreen from tools.dart
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -18,27 +16,23 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1; // Default to Tools screen
   bool _isVisible = true; // Show appBar and bottomBar by default
   bool _isMenuVisible = false; // Show menu options when true
-  bool _isProfileVisible = false; // Show Profile screen when true
-  bool _isSettingsVisible = false; // Show Settings screen when true
 
+  // List of screens to display based on the selected index
   late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
-
     // Ensure the user is logged in and initialize screens
     if (user != null) {
       _screens = [
         StarScreen(userId: user.uid), // Star Screen
         ToolsScreen(userId: user.uid), // Tools Screen with userId
-        ProfileScreen(), // Placeholder for Profile tab (not used)
       ];
     } else {
       // Handle the case where user is not logged in
       _screens = [
-        Center(child: Text('Please log in to access features.')),
         Center(child: Text('Please log in to access features.')),
         Center(child: Text('Please log in to access features.')),
       ];
@@ -48,36 +42,15 @@ class _HomeScreenState extends State<HomeScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      _isMenuVisible = false;
-      _isProfileVisible = false;
-      _isSettingsVisible = false;
+      _isMenuVisible = false; // Hide menu when an item is tapped
     });
   }
 
   void _showMenu() {
     setState(() {
-      _isMenuVisible = true;
-      _isProfileVisible = false;
-      _isSettingsVisible = false;
+      _selectedIndex = 2; // Set the selected index to "Menu"
+      _isMenuVisible = true; // Show menu options
     });
-  }
-
-  void _onMenuOptionSelected(String option) {
-    setState(() {
-      _isMenuVisible = false;
-    });
-
-    if (option == 'Profile') {
-      setState(() {
-        _isProfileVisible = true;
-        _isSettingsVisible = false;
-      });
-    } else if (option == 'Settings') {
-      setState(() {
-        _isSettingsVisible = true;
-        _isProfileVisible = false;
-      });
-    }
   }
 
   @override
@@ -88,7 +61,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: _isVisible
           ? AppBar(
-              title: Text('Rent and use'),
+              title: Row(
+                children: [
+                  Image.asset(
+                    'assets/yantra.jpg',
+                    height: 50,
+                    width: 50,
+                  ),
+                  SizedBox(width: 8),
+                  Text('Yantra Prasamvidha'),
+                ],
+              ),
               actions: [
                 IconButton(
                   icon: Icon(
@@ -102,15 +85,15 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : null,
       body: _isMenuVisible
-          ? Menu(onMenuOptionSelected: _onMenuOptionSelected)
-          : _isProfileVisible
-              ? ProfileScreen()
-              : _isSettingsVisible
-                  ? SettingsScreen()
-                  : IndexedStack(
-                      index: _selectedIndex,
-                      children: _screens,
-                    ),
+          ? Menu(onMenuOptionSelected: (option) {
+              setState(() {
+                _isMenuVisible = false; // Hide menu after selection
+              });
+            })
+          : IndexedStack(
+              index: _selectedIndex,
+              children: _screens,
+            ),
       bottomNavigationBar: _isVisible
           ? BottomAppBar(
               child: Container(
@@ -154,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool isDarkMode,
     VoidCallback? onTap,
   }) {
-    final isSelected = _selectedIndex == index && !_isMenuVisible;
+    final isSelected = _selectedIndex == index;
     return GestureDetector(
       onTap: onTap ?? () => _onItemTapped(index),
       child: Column(
