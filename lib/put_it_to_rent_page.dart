@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 
 class PutItToRentPage extends StatefulWidget {
@@ -81,15 +84,162 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
 
   Future<String?> _uploadImage(File image) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return null;
-      final storageRef = FirebaseStorage.instance.ref().child(
-          'tool_images/${user.uid}_${DateTime.now().millisecondsSinceEpoch}');
-      final uploadTask = storageRef.putFile(image);
-      final snapshot = await uploadTask;
-      return await snapshot.ref.getDownloadURL();
+      print("Starting image upload process...");
+
+      // Step 1: Compress and resize the image
+      final compressedImage = await _compressAndResizeImage(image);
+      if (compressedImage == null) {
+        print("Error: Failed to compress or resize the image.");
+        return null;
+      }
+
+      // Step 2: Authenticate with Blomp and get an access token
+      final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
+      final String username = 'anweshkrishnab6324@gmail.com'; // Blomp username
+      final String password = '5cmYC5!QzP!NsKG'; // Securely store your password
+      final String bucketName =
+          'anweshkrishnab6324@gmail.com'; // Blomp bucket name
+
+      print("Authenticating with Blomp...");
+      print("Username: $username");
+      print("Bucket Name: $bucketName");
+
+      // Authentication payload
+      final Map<String, dynamic> authPayload = {
+        "auth": {
+          "identity": {
+            "methods": ["password"],
+            "password": {
+              "user": {
+                "name": username,
+                "domain": {"id": "default"},
+                "password": password
+              }
+            }
+          }
+        }
+      };
+
+      print("Sending POST request to authenticate...");
+      final authResponse = await http.post(
+        Uri.parse(authUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(authPayload),
+      );
+
+      print("Authentication Response Status Code: ${authResponse.statusCode}");
+      print("Authentication Response Body: ${authResponse.body}");
+
+      if (authResponse.statusCode != 201) {
+        print("Authentication failed: ${authResponse.body}");
+        return null;
+      }
+
+      // Extract the token from the response headers
+      final String? authToken = authResponse.headers['x-subject-token'];
+      if (authToken == null) {
+        print(
+            "Error: X-Subject-Token header not found in authentication response.");
+        return null;
+      }
+
+      print("Authentication successful. Access Token: $authToken");
+
+      final Map<String, dynamic> authData = jsonDecode(authResponse.body);
+      final List<dynamic>? catalog = authData['token']?['catalog'];
+      if (catalog == null || catalog.isEmpty) {
+        print("Error: No catalog found in authentication response.");
+        return null;
+      }
+
+      final String? storageUrl = catalog
+          .firstWhere(
+            (service) => service['type'] == 'object-store',
+            orElse: () => null,
+          )?['endpoints']
+          ?.firstWhere(
+            (endpoint) => endpoint['interface'] == 'public',
+            orElse: () => null,
+          )?['url'];
+      if (storageUrl == null) {
+        print("Error: Storage URL not found in authentication response.");
+        return null;
+      }
+
+      print("Storage URL: $storageUrl");
+
+      // Step 3: Upload the compressed image to Blomp
+      final fileName =
+          'tool_images/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final uploadUrl = '$storageUrl/$bucketName/$fileName';
+
+      print("Uploading image to URL: $uploadUrl");
+
+      final uploadResponse = await http.put(
+        Uri.parse(uploadUrl),
+        headers: {
+          'X-Auth-Token': authToken,
+          'Content-Type': 'image/jpeg',
+        },
+        body: compressedImage, // Use the compressed image here
+      );
+
+      print("Image Upload Response Status Code: ${uploadResponse.statusCode}");
+      print("Image Upload Response Body: ${uploadResponse.body}");
+
+      if (uploadResponse.statusCode != 201) {
+        print("Image upload failed: ${uploadResponse.body}");
+        return null;
+      }
+
+      print("Image uploaded successfully.");
+
+      // Step 4: Generate the public URL for the uploaded image
+      final imageUrl = 'https://$bucketName.blomp.com/$fileName';
+      print("Generated Public Image URL: $imageUrl");
+
+      return imageUrl;
     } catch (e) {
       print("Image upload error: $e");
+      return null;
+    }
+  }
+
+// Helper function to compress and resize the image
+  Future<Uint8List?> _compressAndResizeImage(File imageFile) async {
+    try {
+      // Decode the image file
+      final imageBytes = await imageFile.readAsBytes();
+      final decodedImage = img.decodeImage(imageBytes);
+
+      if (decodedImage == null) {
+        print("Error: Failed to decode the image.");
+        return null;
+      }
+
+      // Resize the image (e.g., reduce width and height to 800x600)
+      final resizedImage =
+          img.copyResize(decodedImage, width: 800, height: 600);
+
+      // Compress the image iteratively until it's below 150KB
+      int quality = 70; // Start with 70% quality
+      Uint8List? compressedImage;
+
+      do {
+        compressedImage =
+            Uint8List.fromList(img.encodeJpg(resizedImage, quality: quality));
+        quality -= 5; // Reduce quality by 5% each iteration
+      } while (compressedImage.lengthInBytes > 150 * 1024 && quality > 10);
+
+      if (quality <= 10) {
+        print("Warning: Image could not be compressed below 150KB.");
+      }
+
+      print(
+          "Image compressed and resized successfully. Final size: ${(compressedImage.lengthInBytes / 1024).toStringAsFixed(2)} KB");
+      return compressedImage; // Return the compressed image bytes
+    } catch (e) {
+      print("Error during image compression: $e");
       return null;
     }
   }
@@ -134,7 +284,7 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
       'location': _locationController.text,
       'contact': _contactController.text,
       'userId': user.uid,
-      'imageUrl': imageUrl, // Save the image URL
+      'imageUrl': imageUrl, // Save the Blomp image URL
       'isAvailable': _isAvailable, // Add availability field
     };
 

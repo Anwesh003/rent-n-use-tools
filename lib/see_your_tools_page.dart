@@ -1,3 +1,6 @@
+import 'dart:io'; // For HttpClient and related classes
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -40,7 +43,6 @@ class SeeYourToolsPage extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
             return Center(
               child: Text(
@@ -49,7 +51,6 @@ class SeeYourToolsPage extends StatelessWidget {
               ),
             );
           }
-
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Text(
@@ -278,18 +279,69 @@ class FullScreenImage extends StatelessWidget {
         onTap: () {
           Navigator.pop(context);
         },
-        child: Center(
-          child: InteractiveViewer(
-            boundaryMargin: EdgeInsets.all(20.0),
-            minScale: 0.5,
-            maxScale: 4.0,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
-            ),
-          ),
+        child: FutureBuilder(
+          future: _fetchImage(imageUrl),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Failed to load image.',
+                  style: TextStyle(fontSize: 18, color: Colors.red),
+                ),
+              );
+            }
+            if (!snapshot.hasData) {
+              return Center(
+                child: Text(
+                  'No image available.',
+                  style: TextStyle(fontSize: 18, color: Colors.grey),
+                ),
+              );
+            }
+            return Center(
+              child: InteractiveViewer(
+                boundaryMargin: EdgeInsets.all(20.0),
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Image.memory(
+                  snapshot.data!,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
+  }
+
+  Future<Uint8List?> _fetchImage(String url) async {
+    try {
+      final HttpClient httpClient = HttpClient();
+      httpClient.badCertificateCallback =
+          (X509Certificate cert, String host, int port) =>
+              true; // Ignore SSL errors
+
+      final HttpClientRequest request = await httpClient.getUrl(Uri.parse(url));
+      final HttpClientResponse response = await request.close();
+
+      if (response.statusCode == 200) {
+        // Read the response bytes and flatten the List<List<int>> into List<int>
+        final List<List<int>> byteChunks =
+            await response.cast<List<int>>().toList();
+        final List<int> bytes =
+            byteChunks.expand((chunk) => chunk).toList(); // Flatten the chunks
+        return Uint8List.fromList(bytes); // Convert to Uint8List
+      } else {
+        print('Failed to fetch image. Status code: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching image: $e');
+      return null;
+    }
   }
 }

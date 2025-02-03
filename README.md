@@ -29,7 +29,6 @@ Below are some screenshots showcasing the progress of the project:
 
 <img src="screenshots/screenshot1.png" width="250" />  
 *Figure 1: Login Screen* 
-
 <img src="screenshots/screenshot2.png" width="250" />  
 *Figure 2: Reset Password Screen*
 <img src="screenshots/screenshot3.png" width="250" />  
@@ -47,7 +46,7 @@ Below are some screenshots showcasing the progress of the project:
 <img src="screenshots/screenshot9.png" width="250" />  
 *Figure 9: rent Screen* 
 <img src="screenshots/screenshot10.png" width="250" /> 
-*Figure 1: see full details Screen*
+*Figure 10: see full details Screen*
 
 
 
