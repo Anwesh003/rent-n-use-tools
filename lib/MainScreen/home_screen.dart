@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../Menu/menu.dart'; // Import Menu widget from menu.dart
 import '../main.dart';
+import 'boyerssearch.dart';
 import 'star.dart'; // Import StarScreen from star.dart
 import 'tools.dart'; // Import ToolsScreen from tools.dart
 
@@ -62,62 +63,52 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: _isVisible
           ? AppBar(
               title: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.center, // Center-align the title
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                        8), // Rounded corners for the logo
+                    borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
                       'assets/yantra.jpg',
                       height: 40,
                       width: 40,
-                      fit: BoxFit
-                          .cover, // Ensure the image fits within the bounds
+                      fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        // Fallback if the image fails to load
                         return Icon(Icons.image_not_supported,
                             size: 40, color: Colors.white);
                       },
                     ),
                   ),
-                  SizedBox(width: 8), // Add spacing between the logo and text
+                  SizedBox(width: 8),
                   Text(
-                    'Yantra',
+                    'Yantra Prasamvidha',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
                       color: Colors.white,
-                      letterSpacing: 1.5, // Adds spacing between letters
-                    ),
-                  ),
-                  SizedBox(width: 4), // Small gap between words
-                  Text(
-                    'Prasamvidha',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color:
-                          Colors.white70, // Slightly lighter color for contrast
-                      letterSpacing: 1.5,
                     ),
                   ),
                 ],
               ),
-              centerTitle: true, // Center the title in the AppBar
-              backgroundColor: Colors.teal, // Background color
-              elevation: 4, // Adds a subtle shadow effect
+              centerTitle: true,
+              backgroundColor: Colors.teal,
+              elevation: 4,
               actions: [
                 IconButton(
                   icon: Icon(
                     themeProvider.isDarkMode
                         ? Icons.light_mode
                         : Icons.dark_mode,
-                    color: Colors
-                        .white, // Match the icon color with the AppBar text
+                    color: Colors.white,
                   ),
                   onPressed: () {
                     themeProvider.toggleTheme();
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.search, color: Colors.white),
+                  onPressed: () {
+                    _showSearchDialog(context); // Show search dialog
                   },
                 ),
               ],
@@ -203,4 +194,51 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+void _showSearchDialog(BuildContext context) {
+  final TextEditingController _searchController = TextEditingController();
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text('Search Tools'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: 'Enter tool name or description',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                final query = _searchController.text.trim();
+                if (query.isNotEmpty) {
+                  Navigator.pop(context); // Close the dialog
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => BoyerSearchScreen(
+                        userId: FirebaseAuth.instance.currentUser!.uid,
+                        searchQuery: query, // Pass the search query
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter a search query.')),
+                  );
+                }
+              },
+              child: Text('Search'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
