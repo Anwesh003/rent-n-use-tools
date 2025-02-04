@@ -50,13 +50,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         email: email,
         password: password,
       );
-
       await userCredential.user?.sendEmailVerification();
 
+      // Show a dialog asking the user to verify their email
       _showAlertDialog(
         'Verify Your Email',
         'A verification email has been sent to your inbox. Please verify your email before logging in.',
-        action: () => Navigator.pushReplacementNamed(context, '/login'),
       );
     } catch (e) {
       setState(() {
@@ -69,7 +68,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  void _showAlertDialog(String title, String content, {VoidCallback? action}) {
+  void _showAlertDialog(String title, String content) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -78,8 +77,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              if (action != null) action();
+              Navigator.of(context).pop(); // Close the dialog
             },
             child: Text('OK'),
           ),
@@ -91,7 +89,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Sign Up'),

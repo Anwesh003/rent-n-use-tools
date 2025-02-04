@@ -82,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: Text('Yantra Prasamvidha'),
         backgroundColor: Colors.teal,
         actions: [
           IconButton(

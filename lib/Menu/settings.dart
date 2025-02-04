@@ -7,7 +7,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   // State variable for theme mode
-  bool _isDarkMode = false;
+  // bool _isDarkMode = false;
 
   @override
   Widget build(BuildContext context) {
@@ -23,21 +23,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
+            // Text(
+            //   'General',
+            //   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            // ),
+            // SizedBox(height: 10),
+            // Theme Toggle
+            // ListTile(
+            //   leading: Icon(Icons.brightness_4),
+            //   title: Text('Dark Mode'),
+            //   trailing: Switch(
+            //     value: _isDarkMode,
+            //     onChanged: (value) {
+            //       setState(() {
+            //         _isDarkMode = value;
+            //       });
+            //       _updateTheme(value);
+            //     },
+            //   ),
+            // ),
 
             // About Section
+            SizedBox(height: 20),
             Text(
               'About',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10),
-
             // Version Info
             ListTile(
               leading: Icon(Icons.info),
               title: Text('Version'),
-              subtitle: Text('1.2.2+4'),
+              subtitle: Text('1.1.2+1'),
             ),
-
             // Privacy Policy
             ListTile(
               leading: Icon(Icons.privacy_tip),
@@ -46,41 +64,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _showPrivacyPolicyDialog(context);
               },
             ),
+            // Contact Us
+            ListTile(
+              leading: Icon(Icons.contact_mail),
+              title: Text('Contact Us'),
+              onTap: () {
+                _showContactUsDetails(context);
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  // Update the app's theme
-  void _updateTheme(bool isDarkMode) {
-    // Notify the parent widget or app state to change the theme
-    final Brightness brightness =
-        isDarkMode ? Brightness.dark : Brightness.light;
-    ThemeData newTheme = isDarkMode
-        ? ThemeData.dark().copyWith(
-            primaryColor: Colors.teal,
-            appBarTheme: AppBarTheme(backgroundColor: Colors.teal),
-          )
-        : ThemeData.light().copyWith(
-            primaryColor: Colors.teal,
-            appBarTheme: AppBarTheme(backgroundColor: Colors.teal),
-          );
-
-    // Use a global state management solution (e.g., Provider, Riverpod) to update the theme.
-    // For simplicity, we'll use a callback here.
-    _applyTheme(newTheme);
-  }
-
-  // Apply the theme globally
-  void _applyTheme(ThemeData theme) {
-    // If you're using a state management solution like Provider, update the theme there.
-    // Otherwise, you can use a simple callback or rebuild the app with the new theme.
-    // For now, we'll just print the theme change.
-    print('Theme changed to ${theme.brightness}');
-  }
-
-  // Show a dialog for privacy policy
   void _showPrivacyPolicyDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -88,9 +85,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text('Privacy Policy'),
         content: SingleChildScrollView(
           child: Text(
-            'This app collects no personal data. All information is stored securely on your device. '
-            'By using this app, you agree to our terms of service.',
-            style: TextStyle(fontSize: 16),
+            'Welcome to our app! We’re glad you’re here. Here’s a quick overview of how we handle your data:\n\n'
+            '1. **Data Storage**: We use Firebase and Blomp to store data securely. These platforms are trusted and widely used for managing user information.\n\n'
+            '2. **Your Data**: While we strive to keep your data safe, please remember that no system is completely immune to risks. We recommend being cautious about the information you share.\n\n'
+            '3. **Responsibility**: By using this app, you acknowledge that we are not responsible for any data loss, misuse, or issues arising from third-party services like Firebase or Blomp.\n\n'
+            '4. **Your Agreement**: By continuing to use this app, you agree to abide by our data policies. This means you understand how your data is handled and accept the associated risks.\n\n'
+            'We’re committed to making your experience as smooth and secure as possible. If you have any questions or concerns, feel free to reach out to us through the "Contact Us" section in the settings.\n\n'
+            'Thank you for using our app!',
+            style: TextStyle(
+                fontSize: 16, height: 1.5), // Add line height for readability
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close dialog
+            },
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Show a dialog for Contact Us details
+  void _showContactUsDetails(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Contact Us'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'For any queries or support, please contact us at:',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.email, size: 18, color: Colors.teal),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Email: yantraprasamvidha@gmail.com',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
         actions: [

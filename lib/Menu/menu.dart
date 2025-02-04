@@ -95,9 +95,8 @@ class Menu extends StatelessWidget {
             _buildMenuItem(
               icon: Icons.exit_to_app,
               title: 'Logout',
-              onTap: () async {
-                await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacementNamed(context, '/login');
+              onTap: () {
+                _showLogoutConfirmationDialog(context);
               },
               cardColor: cardColor,
               shadowColor: shadowColor,
@@ -146,4 +145,30 @@ class Menu extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showLogoutConfirmationDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Logout'),
+      content: Text('Are you sure you want to logout?'),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // Close the dialog
+          },
+          child: Text('No'),
+        ),
+        TextButton(
+          onPressed: () async {
+            Navigator.of(context).pop(); // Close the dialog
+            await FirebaseAuth.instance.signOut();
+            Navigator.pushReplacementNamed(context, '/login');
+          },
+          child: Text('Yes'),
+        ),
+      ],
+    ),
+  );
 }
