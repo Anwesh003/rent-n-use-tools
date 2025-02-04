@@ -60,18 +60,15 @@ class _BookingPageState extends State<BookingPage> {
     final bookings =
         List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
     int bookedQuantity = 0;
-
     for (final booking in bookings) {
       final bookingStartDate = DateTime.parse(booking['startDate']);
       final bookingEndDate = DateTime.parse(booking['endDate']);
-
       // Check for overlapping bookings
       if (startDate.isBefore(bookingEndDate.add(Duration(days: 1))) &&
           endDate.isAfter(bookingStartDate.subtract(Duration(days: 1)))) {
         bookedQuantity += (booking['quantityBooked'] ?? 0) as int;
       }
     }
-
     return totalQuantity - bookedQuantity;
   }
 
@@ -118,6 +115,7 @@ class _BookingPageState extends State<BookingPage> {
         'startDate': _startDate!.toIso8601String(),
         'endDate': _endDate!.toIso8601String(),
         'quantityBooked': _quantityToBook,
+        'isAccepted': false, // Add the isAccepted field, default to false
       };
       await _firestore.runTransaction((transaction) async {
         final toolDoc = await transaction.get(toolRef);
@@ -129,18 +127,15 @@ class _BookingPageState extends State<BookingPage> {
         final bookings =
             List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
         int bookedQuantity = 0;
-
         for (final booking in bookings) {
           final bookingStartDate = DateTime.parse(booking['startDate']);
           final bookingEndDate = DateTime.parse(booking['endDate']);
-
           // Check for overlapping bookings
           if (_startDate!.isBefore(bookingEndDate.add(Duration(days: 1))) &&
               _endDate!.isAfter(bookingStartDate.subtract(Duration(days: 1)))) {
             bookedQuantity += (booking['quantityBooked'] ?? 0) as int;
           }
         }
-
         if ((totalQuantity - bookedQuantity) < _quantityToBook) {
           throw Exception("The tool is not available for the requested dates.");
         }
@@ -152,7 +147,7 @@ class _BookingPageState extends State<BookingPage> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Booking successful!')),
+        SnackBar(content: Text('Booking request sent! Awaiting approval.')),
       );
       Navigator.pop(context);
     } catch (e) {

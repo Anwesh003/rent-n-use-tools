@@ -138,14 +138,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     SizedBox(height: 20),
                     // Profile Avatar
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundImage: NetworkImage(
-                        _auth.currentUser?.photoURL ??
-                            'https://www.example.com/default-profile-pic.png',
-                      ),
-                    ),
-                    SizedBox(height: 16),
 
                     // If editing, show the form, else display the profile details
                     if (isEditing) ...[

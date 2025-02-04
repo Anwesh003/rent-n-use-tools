@@ -62,20 +62,59 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: _isVisible
           ? AppBar(
               title: Row(
+                mainAxisAlignment:
+                    MainAxisAlignment.center, // Center-align the title
                 children: [
-                  Image.asset(
-                    'assets/yantra.jpg',
-                    height: 50,
-                    width: 50,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                        8), // Rounded corners for the logo
+                    child: Image.asset(
+                      'assets/yantra.jpg',
+                      height: 40,
+                      width: 40,
+                      fit: BoxFit
+                          .cover, // Ensure the image fits within the bounds
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback if the image fails to load
+                        return Icon(Icons.image_not_supported,
+                            size: 40, color: Colors.white);
+                      },
+                    ),
                   ),
-                  SizedBox(width: 8),
-                  Text('Yantra Prasamvidha'),
+                  SizedBox(width: 8), // Add spacing between the logo and text
+                  Text(
+                    'Yantra',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.5, // Adds spacing between letters
+                    ),
+                  ),
+                  SizedBox(width: 4), // Small gap between words
+                  Text(
+                    'Prasamvidha',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          Colors.white70, // Slightly lighter color for contrast
+                      letterSpacing: 1.5,
+                    ),
+                  ),
                 ],
               ),
+              centerTitle: true, // Center the title in the AppBar
+              backgroundColor: Colors.teal, // Background color
+              elevation: 4, // Adds a subtle shadow effect
               actions: [
                 IconButton(
                   icon: Icon(
-                    isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                    themeProvider.isDarkMode
+                        ? Icons.light_mode
+                        : Icons.dark_mode,
+                    color: Colors
+                        .white, // Match the icon color with the AppBar text
                   ),
                   onPressed: () {
                     themeProvider.toggleTheme();
@@ -83,7 +122,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             )
-          : null,
+          : null, // Hide the AppBar if _isVisible is false
+
       body: _isMenuVisible
           ? Menu(onMenuOptionSelected: (option) {
               setState(() {

@@ -5,17 +5,11 @@ import 'FullToolDetails.dart'; // Import the FullToolDetails page
 
 class StarScreen extends StatelessWidget {
   final String userId; // User ID passed to the screen
-
   StarScreen({required this.userId});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Starred Tools'),
-        backgroundColor: Colors.teal,
-        elevation: 4,
-      ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('starred_tools')
@@ -50,10 +44,8 @@ class StarScreen extends StatelessWidget {
               ),
             );
           }
-
           // Extract tool IDs from the starred tools collection
           final toolIds = snapshot.data!.docs.map((doc) => doc.id).toList();
-
           // Fetch tool details using the tool IDs
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -88,9 +80,7 @@ class StarScreen extends StatelessWidget {
                   ),
                 );
               }
-
               final tools = toolsSnapshot.data!.docs;
-
               return ListView.builder(
                 padding: EdgeInsets.all(16.0),
                 itemCount: tools.length,
@@ -131,27 +121,45 @@ class StarScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                if (tool['imageUrl'] != null)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.network(
-                                      tool['imageUrl'],
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                else
-                                  Container(
-                                    width: 80,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(Icons.image,
-                                        size: 40, color: Colors.white),
-                                  ),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: tool['imageUrl'] != null &&
+                                          tool['imageUrl'].isNotEmpty
+                                      ? Image.network(
+                                          tool['imageUrl'],
+                                          width: 80,
+                                          height: 80,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            print(
+                                                'Image failed to load: ${tool['imageUrl']}');
+                                            return Container(
+                                              width: 80,
+                                              height: 80,
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[300],
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Icon(Icons.image,
+                                                  size: 40,
+                                                  color: Colors.white),
+                                            );
+                                          },
+                                        )
+                                      : Container(
+                                          width: 80,
+                                          height: 80,
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[300],
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(Icons.image,
+                                              size: 40, color: Colors.white),
+                                        ),
+                                ),
                                 SizedBox(width: 16),
                                 Expanded(
                                   child: Column(

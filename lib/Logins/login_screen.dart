@@ -82,12 +82,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Yantra Prasamvidha'),
-        backgroundColor: Colors.teal,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Yantra',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: 1.5, // Adds spacing between letters
+              ),
+            ),
+            SizedBox(width: 4), // Small gap between words
+            Text(
+              'Prasamvidha',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: Colors.white70, // Slightly lighter color for contrast
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+        centerTitle: true, // Centers the title in the AppBar
+        backgroundColor: Colors.teal, // Background color
+        elevation: 4, // Adds a subtle shadow effect
         actions: [
           IconButton(
             icon: Icon(
               themeProvider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+              color: Colors
+                  .white, // Ensure the icon matches the AppBar's text color
             ),
             onPressed: () {
               themeProvider.toggleTheme();

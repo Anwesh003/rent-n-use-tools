@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 
 class RentedToolsPage extends StatelessWidget {
   final String userId; // The ID of the user whose tools are being fetched
-
   RentedToolsPage({required this.userId});
 
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Who Rented Your Tools'),
@@ -35,24 +33,28 @@ class RentedToolsPage extends StatelessWidget {
             );
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            print('No tools found for user ID: $userId');
             return Center(
               child: Text(
                 'No tools have been rented yet.',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: isDarkMode ? Colors.white : Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
               ),
             );
           }
 
           final tools = snapshot.data!.docs;
+          print(
+              'Fetched tools: ${tools.length}'); // Log the number of tools fetched
 
           // Filter out tools that have no bookings
           final rentedTools = tools.where((tool) {
             final toolData = tool.data() as Map<String, dynamic>?;
-            final bookings =
-                List<Map<String, dynamic>>.from(toolData?['bookings'] ?? []);
+            final bookings = toolData?['bookings'];
+            if (bookings == null || !(bookings is List)) {
+              print('Invalid bookings structure for tool: ${tool.id}');
+              return false;
+            }
+            print('Tool ${tool.id} has ${bookings.length} bookings.');
             return bookings.isNotEmpty;
           }).toList();
 
@@ -60,10 +62,7 @@ class RentedToolsPage extends StatelessWidget {
             return Center(
               child: Text(
                 'No tools have been rented yet.',
-                style: TextStyle(
-                  fontSize: 18,
-                  color: isDarkMode ? Colors.white : Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 18, color: Colors.grey[600]),
               ),
             );
           }
@@ -85,6 +84,7 @@ class RentedToolsPage extends StatelessWidget {
                       booking['startDate'] ?? 'Unknown Start Date';
                   final endDate = booking['endDate'] ?? 'Unknown End Date';
                   final quantityBooked = booking['quantityBooked'] ?? 0;
+                  final isAccepted = booking['isAccepted'] ?? false;
 
                   return ListTile(
                     leading: Icon(Icons.person, color: Colors.teal),
@@ -96,6 +96,45 @@ class RentedToolsPage extends StatelessWidget {
                         Text('End Date: $endDate'),
                         Text('Quantity Booked: $quantityBooked'),
                       ],
+                    ),
+                    trailing: Switch(
+                      value: isAccepted,
+                      onChanged: isAccepted
+                          ? null // Disable the switch if already accepted
+                          : (value) async {
+                              try {
+                                await FirebaseFirestore.instance
+                                    .collection('tools')
+                                    .doc(tool.id)
+                                    .update({
+                                  'bookings': FieldValue.arrayRemove([booking])
+                                });
+                                await FirebaseFirestore.instance
+                                    .collection('tools')
+                                    .doc(tool.id)
+                                    .update({
+                                  'bookings': FieldValue.arrayUnion([
+                                    {
+                                      ...booking,
+                                      'isAccepted':
+                                          true, // Update isAccepted to true
+                                    }
+                                  ]),
+                                });
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Booking accepted!'),
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to accept booking.'),
+                                  ),
+                                );
+                              }
+                            },
+                      activeColor: Colors.green,
                     ),
                   );
                 }).toList(),

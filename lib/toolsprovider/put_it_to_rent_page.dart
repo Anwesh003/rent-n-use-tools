@@ -94,7 +94,7 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
       }
 
       // Step 2: Authenticate with Blomp and get an access token
-      final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
+      final String authUrl = 'http://authenticate.blomp.com/v3/auth/tokens';
       final String username = 'anweshkrishnab6324@gmail.com'; // Blomp username
       final String password = '5cmYC5!QzP!NsKG'; // Securely store your password
       final String bucketName =
@@ -195,7 +195,7 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
       print("Image uploaded successfully.");
 
       // Step 4: Generate the public URL for the uploaded image
-      final imageUrl = 'https://$bucketName.blomp.com/$fileName';
+      final imageUrl = 'http://$bucketName.blomp.com/$fileName';
       print("Generated Public Image URL: $imageUrl");
 
       return imageUrl;
