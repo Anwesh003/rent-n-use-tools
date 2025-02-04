@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="rent_n_use"
+        android:label="Yantra Prasamvidha"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
