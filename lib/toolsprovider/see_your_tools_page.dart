@@ -1,12 +1,125 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import 'edit_tool_page.dart';
+
+class ImageCacheManager {
+  final Map<String, Uint8List> _cache = {};
+
+  Future<Uint8List?> getImage(String fileName) async {
+    if (_cache.containsKey(fileName)) {
+      return _cache[fileName];
+    }
+
+    final imageBytes = await _fetchPrivateImage(fileName);
+    if (imageBytes != null) {
+      _cache[fileName] = imageBytes;
+    }
+    return imageBytes;
+  }
+
+  Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
+    if (fileName == null || fileName.isEmpty) {
+      print("Error: File name is null or empty.");
+      return null;
+    }
+
+    try {
+      // Step 1: Authenticate with Blomp (OpenStack API)
+      final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
+      final String username =
+          'anweshkrishnab6324@gmail.com'; // Replace with secure credentials
+      final String password =
+          '5cmYC5!QzP!NsKG'; // Replace with secure credentials
+      final String bucketName =
+          'anweshkrishnab6324@gmail.com'; // Replace with your bucket name
+
+      final Map authPayload = {
+        "auth": {
+          "identity": {
+            "methods": ["password"],
+            "password": {
+              "user": {
+                "name": username,
+                "domain": {"id": "default"},
+                "password": password,
+              },
+            },
+          },
+        },
+      };
+
+      final http.Response authResponse = await http.post(
+        Uri.parse(authUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(authPayload),
+      );
+
+      if (authResponse.statusCode != 201) {
+        print("Authentication failed: ${authResponse.body}");
+        return null;
+      }
+
+      // Extract the token from the response headers
+      final String? authToken = authResponse.headers['x-subject-token'];
+      if (authToken == null) {
+        print(
+            "Error: X-Subject-Token header not found in authentication response.");
+        return null;
+      }
+
+      // Step 2: Fetch the storage URL from the catalog
+      final Map authData = jsonDecode(authResponse.body);
+      final List? catalog = authData['token']?['catalog'];
+      if (catalog == null || catalog.isEmpty) {
+        print("Error: No catalog found in authentication response.");
+        return null;
+      }
+
+      final String? storageUrl = catalog
+          .firstWhere(
+            (service) => service['type'] == 'object-store',
+            orElse: () => null,
+          )?['endpoints']
+          ?.firstWhere(
+            (endpoint) => endpoint['interface'] == 'public',
+            orElse: () => null,
+          )?['url'];
+
+      if (storageUrl == null) {
+        print("Error: Storage URL not found in authentication response.");
+        return null;
+      }
+
+      // Step 3: Build the image URL and fetch the image
+      final String imageUrl = '$storageUrl/$bucketName/tool_images/$fileName';
+      final http.Response imageResponse = await http.get(
+        Uri.parse(imageUrl),
+        headers: {'X-Auth-Token': authToken},
+      );
+
+      if (imageResponse.statusCode != 200) {
+        print(
+            "Failed to fetch image. Status code: ${imageResponse.statusCode}");
+        print("Response body: ${imageResponse.body}");
+        return null;
+      }
+
+      // Return the image bytes
+      return imageResponse.bodyBytes;
+    } catch (e) {
+      print("Error fetching private image: $e");
+      return null;
+    }
+  }
+}
+
+final imageCacheManager = ImageCacheManager();
 
 class SeeYourToolsPage extends StatelessWidget {
   const SeeYourToolsPage({Key? key}) : super(key: key);
@@ -38,7 +151,7 @@ class SeeYourToolsPage extends StatelessWidget {
         backgroundColor: Colors.teal,
         elevation: 4,
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('tools')
             .where('userId', isEqualTo: user.uid)
@@ -68,17 +181,16 @@ class SeeYourToolsPage extends StatelessWidget {
           }
 
           final tools = snapshot.data!.docs;
+
           return ListView.builder(
             itemCount: tools.length,
             itemBuilder: (context, index) {
               final tool = tools[index];
               final String? imageUrl = tool['imageUrl'] as String?;
-              final int quantity = tool['quantity'] is num
-                  ? tool['quantity'].toInt()
-                  : int.tryParse(tool['quantity'].toString()) ?? 0;
-              final double price = tool['price'] is num
-                  ? tool['price'].toDouble()
-                  : double.tryParse(tool['price'].toString()) ?? 0.0;
+              final int quantity =
+                  tool['quantity'] is num ? tool['quantity'].toInt() : 0;
+              final double price =
+                  tool['price'] is num ? tool['price'].toDouble() : 0.0;
               final bool isAvailable = tool['isAvailable'] ?? true;
 
               return Card(
@@ -116,13 +228,34 @@ class SeeYourToolsPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: imageUrl != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
+                              ? FutureBuilder<Uint8List?>(
+                                  future: imageCacheManager
+                                      .getImage(imageUrl.split('/').last),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+                                    if (snapshot.hasError ||
+                                        snapshot.data == null) {
+                                      return Center(
+                                        child: Text(
+                                          'Failed to load image.',
+                                          style: TextStyle(
+                                              color: Colors.red, fontSize: 16),
+                                        ),
+                                      );
+                                    }
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child: Image.memory(
+                                        snapshot.data!,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                      ),
+                                    );
+                                  },
                                 )
                               : Center(
                                   child: Text(
@@ -219,8 +352,10 @@ class SeeYourToolsPage extends StatelessWidget {
                                     print('Error updating availability: $e');
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                          content: Text(
-                                              'Failed to update availability.')),
+                                        content: Text(
+                                          'Failed to update availability.',
+                                        ),
+                                      ),
                                     );
                                   }
                                 },
@@ -264,11 +399,11 @@ class SeeYourToolsPage extends StatelessWidget {
 
 class FullScreenImage extends StatelessWidget {
   final String imageUrl;
+
   const FullScreenImage({Key? key, required this.imageUrl}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // Tapping anywhere on the image returns to the previous screen.
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -281,24 +416,16 @@ class FullScreenImage extends StatelessWidget {
           Navigator.pop(context);
         },
         child: FutureBuilder<Uint8List?>(
-          future: _fetchImage(imageUrl),
+          future: imageCacheManager.getImage(imageUrl.split('/').last),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError) {
+            if (snapshot.hasError || snapshot.data == null) {
               return Center(
                 child: Text(
                   'Failed to load image.',
                   style: TextStyle(fontSize: 18, color: Colors.red),
-                ),
-              );
-            }
-            if (!snapshot.hasData || snapshot.data == null) {
-              return Center(
-                child: Text(
-                  'No image available.',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
                 ),
               );
             }
@@ -317,120 +444,5 @@ class FullScreenImage extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Fetch an image from a public URL.
-/// The URL must be properly formatted.
-Future<Uint8List?> _fetchImage(String url) async {
-  try {
-    final HttpClient httpClient = HttpClient();
-    // Bypass SSL errors (only for development)
-    httpClient.badCertificateCallback =
-        (X509Certificate cert, String host, int port) => true;
-    final Uri uri = Uri.parse(url);
-    final HttpClientRequest request = await httpClient.getUrl(uri);
-    final HttpClientResponse response = await request.close();
-
-    if (response.statusCode == 200) {
-      final List<List<int>> byteChunks =
-          await response.cast<List<int>>().toList();
-      final List<int> bytes = byteChunks.expand((chunk) => chunk).toList();
-      return Uint8List.fromList(bytes);
-    } else {
-      print('Failed to fetch image. Status code: ${response.statusCode}');
-      return null;
-    }
-  } catch (e) {
-    print('Error fetching image: $e');
-    return null;
-  }
-}
-
-/// Fetch a private image from Blomp using authentication.
-Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
-  if (fileName == null || fileName.isEmpty) {
-    print("Error: File name is null or empty.");
-    return null;
-  }
-
-  try {
-    // Step 1: Authenticate with Blomp.
-    final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
-    final String username =
-        'anweshkrishnab6324@gmail.com'; // Insecure: replace with a secure method.
-    final String password =
-        '5cmYC5!QzP!NsKG'; // Insecure: replace with a secure method.
-    final String bucketName =
-        'anweshkrishnab6324@gmail.com'; // Replace with your bucket name if needed.
-
-    final Map<String, dynamic> authPayload = {
-      "auth": {
-        "identity": {
-          "methods": ["password"],
-          "password": {
-            "user": {
-              "name": username,
-              "domain": {"id": "default"},
-              "password": password
-            }
-          }
-        }
-      }
-    };
-
-    final HttpClient httpClient = HttpClient();
-    httpClient.badCertificateCallback =
-        (X509Certificate cert, String host, int port) => true;
-
-    // Perform authentication.
-    final HttpClientRequest authRequest =
-        await httpClient.postUrl(Uri.parse(authUrl));
-    authRequest.headers.contentType = ContentType.json;
-    authRequest.write(jsonEncode(authPayload));
-    final HttpClientResponse authResponse = await authRequest.close();
-
-    if (authResponse.statusCode != 201) {
-      print(
-          "Authentication failed: ${await authResponse.transform(utf8.decoder).join()}");
-      return null;
-    }
-
-    // Extract the token.
-    final String? authToken = authResponse.headers.value('x-subject-token');
-    if (authToken == null) {
-      print(
-          "Error: X-Subject-Token header not found in authentication response.");
-      return null;
-    }
-
-    // Build the final image URL safely using Dart's Uri constructor.
-    final Uri imageUri = Uri(
-      scheme: 'https',
-      host: 'www.blomp.com',
-      // Ensure the path starts with a slash.
-      path: '/tool_images/$fileName',
-    );
-    print("Final image URL: ${imageUri.toString()}");
-
-    final HttpClientRequest imageRequest = await httpClient.getUrl(imageUri);
-    imageRequest.headers.add('X-Auth-Token', authToken);
-    final HttpClientResponse imageResponse = await imageRequest.close();
-
-    if (imageResponse.statusCode != 200) {
-      print("Failed to fetch image. Status code: ${imageResponse.statusCode}");
-      print(
-          "Response body: ${await imageResponse.transform(utf8.decoder).join()}");
-      return null;
-    }
-
-    final List<int> byteChunks = [];
-    await for (final chunk in imageResponse) {
-      byteChunks.addAll(chunk);
-    }
-    return Uint8List.fromList(byteChunks);
-  } catch (e) {
-    print("Error fetching private image: $e");
-    return null;
   }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 class FullScreenImage extends StatelessWidget {
   final String imageUrl;
-
   const FullScreenImage({Key? key, required this.imageUrl}) : super(key: key);
 
   @override
@@ -19,16 +18,36 @@ class FullScreenImage extends StatelessWidget {
         onTap: () {
           Navigator.pop(context); // Close the full-screen view on tap.
         },
+        onDoubleTap: () {
+          // Optional: Add a double-tap to reset zoom.
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Zoom reset')),
+          );
+        },
         child: Center(
           child: InteractiveViewer(
             boundaryMargin: const EdgeInsets.all(20.0),
-            minScale: 0.5,
-            maxScale: 4.0,
+            minScale: 0.5, // Minimum zoom level
+            maxScale: 4.0, // Maximum zoom level
+            constrained:
+                false, // Allows the image to exceed screen bounds when zoomed.
             child: Image.network(
               imageUrl,
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
-                return const Center(child: Text('Error loading image'));
+                return const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error, size: 50, color: Colors.red),
+                      SizedBox(height: 10),
+                      Text(
+                        'Error loading image',
+                        style: TextStyle(fontSize: 16, color: Colors.red),
+                      ),
+                    ],
+                  ),
+                );
               },
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;

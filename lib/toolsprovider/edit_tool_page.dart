@@ -1,4 +1,4 @@
-import 'dart:convert'; // Add this import
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -41,7 +41,7 @@ class _EditToolPageState extends State<EditToolPage> {
   late TextEditingController _contactController;
   late TextEditingController _descriptionController;
 
-  File? _selectedImage;
+  File? _selectedImage; // Stores the newly picked image
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -61,7 +61,7 @@ class _EditToolPageState extends State<EditToolPage> {
         await _imagePicker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = File(pickedFile.path); // Update the selected image
       });
     }
   }
@@ -69,7 +69,7 @@ class _EditToolPageState extends State<EditToolPage> {
   Future<void> _saveChanges() async {
     final newImageUrl = _selectedImage != null
         ? await _uploadImage(_selectedImage!)
-        : widget.imageUrl;
+        : widget.imageUrl; // Use existing image URL if no new image is selected
 
     if (newImageUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -107,7 +107,6 @@ class _EditToolPageState extends State<EditToolPage> {
   Future<String?> _uploadImage(File image) async {
     try {
       print("Starting image upload process...");
-
       // Step 1: Compress and resize the image
       final compressedImage = await _compressAndResizeImage(image);
       if (compressedImage == null) {
@@ -117,17 +116,14 @@ class _EditToolPageState extends State<EditToolPage> {
 
       // Step 2: Authenticate with Blomp and get an access token
       final String authUrl = 'http://authenticate.blomp.com/v3/auth/tokens';
-      final String username = 'anweshkrishnab6324@gmail.com'; // Blomp username
-      final String password = '5cmYC5!QzP!NsKG'; // Securely store your password
+      final String username =
+          'anweshkrishnab6324@gmail.com'; // Replace with secure credentials
+      final String password =
+          '5cmYC5!QzP!NsKG'; // Replace with secure credentials
       final String bucketName =
-          'anweshkrishnab6324@gmail.com'; // Blomp bucket name
+          'anweshkrishnab6324@gmail.com'; // Replace with your bucket name
 
-      print("Authenticating with Blomp...");
-      print("Username: $username");
-      print("Bucket Name: $bucketName");
-
-      // Authentication payload
-      final Map<String, dynamic> authPayload = {
+      final Map authPayload = {
         "auth": {
           "identity": {
             "methods": ["password"],
@@ -135,22 +131,18 @@ class _EditToolPageState extends State<EditToolPage> {
               "user": {
                 "name": username,
                 "domain": {"id": "default"},
-                "password": password
-              }
-            }
-          }
-        }
+                "password": password,
+              },
+            },
+          },
+        },
       };
 
-      print("Sending POST request to authenticate...");
-      final authResponse = await http.post(
+      final http.Response authResponse = await http.post(
         Uri.parse(authUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(authPayload),
       );
-
-      print("Authentication Response Status Code: ${authResponse.statusCode}");
-      print("Authentication Response Body: ${authResponse.body}");
 
       if (authResponse.statusCode != 201) {
         print("Authentication failed: ${authResponse.body}");
@@ -165,10 +157,8 @@ class _EditToolPageState extends State<EditToolPage> {
         return null;
       }
 
-      print("Authentication successful. Access Token: $authToken");
-
-      final Map<String, dynamic> authData = jsonDecode(authResponse.body);
-      final List<dynamic>? catalog = authData['token']?['catalog'];
+      final Map authData = jsonDecode(authResponse.body);
+      final List? catalog = authData['token']?['catalog'];
       if (catalog == null || catalog.isEmpty) {
         print("Error: No catalog found in authentication response.");
         return null;
@@ -183,43 +173,33 @@ class _EditToolPageState extends State<EditToolPage> {
             (endpoint) => endpoint['interface'] == 'public',
             orElse: () => null,
           )?['url'];
+
       if (storageUrl == null) {
         print("Error: Storage URL not found in authentication response.");
         return null;
       }
-
-      print("Storage URL: $storageUrl");
 
       // Step 3: Upload the compressed image to Blomp
       final fileName =
           'tool_images/${DateTime.now().millisecondsSinceEpoch}.jpg';
       final uploadUrl = '$storageUrl/$bucketName/$fileName';
 
-      print("Uploading image to URL: $uploadUrl");
-
-      final uploadResponse = await http.put(
+      final http.Response uploadResponse = await http.put(
         Uri.parse(uploadUrl),
         headers: {
           'X-Auth-Token': authToken,
           'Content-Type': 'image/jpeg',
         },
-        body: compressedImage, // Use the compressed image here
+        body: compressedImage,
       );
-
-      print("Image Upload Response Status Code: ${uploadResponse.statusCode}");
-      print("Image Upload Response Body: ${uploadResponse.body}");
 
       if (uploadResponse.statusCode != 201) {
         print("Image upload failed: ${uploadResponse.body}");
         return null;
       }
 
-      print("Image uploaded successfully.");
-
       // Step 4: Generate the public URL for the uploaded image
       final imageUrl = 'http://$bucketName.blomp.com/$fileName';
-      print("Generated Public Image URL: $imageUrl");
-
       return imageUrl;
     } catch (e) {
       print("Image upload error: $e");
@@ -227,39 +207,31 @@ class _EditToolPageState extends State<EditToolPage> {
     }
   }
 
-// Helper function to compress and resize the image
   Future<Uint8List?> _compressAndResizeImage(File imageFile) async {
     try {
-      // Decode the image file
       final imageBytes = await imageFile.readAsBytes();
       final decodedImage = img.decodeImage(imageBytes);
-
       if (decodedImage == null) {
         print("Error: Failed to decode the image.");
         return null;
       }
 
-      // Resize the image (e.g., reduce width and height to 800x600)
       final resizedImage =
           img.copyResize(decodedImage, width: 800, height: 600);
 
-      // Compress the image iteratively until it's below 150KB
-      int quality = 70; // Start with 70% quality
+      int quality = 70;
       Uint8List? compressedImage;
-
       do {
         compressedImage =
             Uint8List.fromList(img.encodeJpg(resizedImage, quality: quality));
-        quality -= 5; // Reduce quality by 5% each iteration
+        quality -= 5;
       } while (compressedImage.lengthInBytes > 150 * 1024 && quality > 10);
 
       if (quality <= 10) {
         print("Warning: Image could not be compressed below 150KB.");
       }
 
-      print(
-          "Image compressed and resized successfully. Final size: ${(compressedImage.lengthInBytes / 1024).toStringAsFixed(2)} KB");
-      return compressedImage; // Return the compressed image bytes
+      return compressedImage;
     } catch (e) {
       print("Error during image compression: $e");
       return null;
@@ -289,10 +261,41 @@ class _EditToolPageState extends State<EditToolPage> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: _selectedImage != null
-                      ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                      ? Image.file(_selectedImage!,
+                          fit: BoxFit.cover) // Display newly picked image
                       : widget.imageUrl != null
-                          ? Image.network(widget.imageUrl!, fit: BoxFit.cover)
-                          : Center(child: Text("Tap to select an image")),
+                          ? FutureBuilder<Uint8List?>(
+                              future: _fetchPrivateImage(
+                                  widget.imageUrl!.split('/').last),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                      child: CircularProgressIndicator());
+                                }
+                                if (snapshot.hasError ||
+                                    snapshot.data == null) {
+                                  return Center(
+                                    child: Text(
+                                      'Failed to load image.',
+                                      style: TextStyle(
+                                          color: Colors.red, fontSize: 16),
+                                    ),
+                                  );
+                                }
+                                return ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.memory(
+                                    snapshot.data!,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                  ),
+                                );
+                              },
+                            )
+                          : Center(
+                              child: Text(
+                                  "Tap to select an image")), // No image available
                 ),
               ),
               SizedBox(height: 20),
@@ -370,5 +373,99 @@ class _EditToolPageState extends State<EditToolPage> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+  }
+
+  Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
+    if (fileName == null || fileName.isEmpty) {
+      print("Error: File name is null or empty.");
+      return null;
+    }
+
+    try {
+      // Step 1: Authenticate with Blomp (OpenStack API)
+      final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
+      final String username =
+          'anweshkrishnab6324@gmail.com'; // Replace with secure credentials
+      final String password =
+          '5cmYC5!QzP!NsKG'; // Replace with secure credentials
+      final String bucketName =
+          'anweshkrishnab6324@gmail.com'; // Replace with your bucket name
+
+      final Map authPayload = {
+        "auth": {
+          "identity": {
+            "methods": ["password"],
+            "password": {
+              "user": {
+                "name": username,
+                "domain": {"id": "default"},
+                "password": password,
+              },
+            },
+          },
+        },
+      };
+
+      final http.Response authResponse = await http.post(
+        Uri.parse(authUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(authPayload),
+      );
+
+      if (authResponse.statusCode != 201) {
+        print("Authentication failed: ${authResponse.body}");
+        return null;
+      }
+
+      // Extract the token from the response headers
+      final String? authToken = authResponse.headers['x-subject-token'];
+      if (authToken == null) {
+        print(
+            "Error: X-Subject-Token header not found in authentication response.");
+        return null;
+      }
+
+      final Map authData = jsonDecode(authResponse.body);
+      final List? catalog = authData['token']?['catalog'];
+      if (catalog == null || catalog.isEmpty) {
+        print("Error: No catalog found in authentication response.");
+        return null;
+      }
+
+      final String? storageUrl = catalog
+          .firstWhere(
+            (service) => service['type'] == 'object-store',
+            orElse: () => null,
+          )?['endpoints']
+          ?.firstWhere(
+            (endpoint) => endpoint['interface'] == 'public',
+            orElse: () => null,
+          )?['url'];
+
+      if (storageUrl == null) {
+        print("Error: Storage URL not found in authentication response.");
+        return null;
+      }
+
+      // Step 3: Build the image URL and fetch the image
+      final String imageUrl = '$storageUrl/$bucketName/tool_images/$fileName';
+      final http.Response imageResponse = await http.get(
+        Uri.parse(imageUrl),
+        headers: {'X-Auth-Token': authToken},
+      );
+
+      if (imageResponse.statusCode != 200) {
+        print(
+            "Failed to fetch image. Status code: ${imageResponse.statusCode}");
+        print("Response body: ${imageResponse.body}");
+        return null;
+      }
+
+      // Return the image bytes
+      return imageResponse.bodyBytes;
+    } catch (e) {
+      print("Error fetching private image: $e");
+      return null;
+    }
   }
 }

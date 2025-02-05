@@ -1,6 +1,121 @@
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import 'BookingPage.dart'; // Import the BookingPage
+
+/// Image Cache Manager for Private Images
+class ImageCacheManager {
+  final Map<String, Uint8List> _cache = {};
+
+  Future<Uint8List?> getImage(String fileName) async {
+    if (_cache.containsKey(fileName)) {
+      return _cache[fileName];
+    }
+    final imageBytes = await _fetchPrivateImage(fileName);
+    if (imageBytes != null) {
+      _cache[fileName] = imageBytes;
+    }
+    return imageBytes;
+  }
+
+  Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
+    if (fileName == null || fileName.isEmpty) {
+      print("Error: File name is null or empty.");
+      return null;
+    }
+    try {
+      // Step 1: Authenticate with Blomp (OpenStack API)
+      final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
+      final String username =
+          'anweshkrishnab6324@gmail.com'; // Replace with secure credentials
+      final String password =
+          '5cmYC5!QzP!NsKG'; // Replace with secure credentials
+      final String bucketName =
+          'anweshkrishnab6324@gmail.com'; // Replace with your bucket name
+
+      final Map authPayload = {
+        "auth": {
+          "identity": {
+            "methods": ["password"],
+            "password": {
+              "user": {
+                "name": username,
+                "domain": {"id": "default"},
+                "password": password,
+              },
+            },
+          },
+        },
+      };
+
+      final http.Response authResponse = await http.post(
+        Uri.parse(authUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(authPayload),
+      );
+
+      if (authResponse.statusCode != 201) {
+        print("Authentication failed: ${authResponse.body}");
+        return null;
+      }
+
+      // Extract the token from the response headers
+      final String? authToken = authResponse.headers['x-subject-token'];
+      if (authToken == null) {
+        print(
+            "Error: X-Subject-Token header not found in authentication response.");
+        return null;
+      }
+
+      // Step 2: Fetch the storage URL from the catalog
+      final Map authData = jsonDecode(authResponse.body);
+      final List? catalog = authData['token']?['catalog'];
+      if (catalog == null || catalog.isEmpty) {
+        print("Error: No catalog found in authentication response.");
+        return null;
+      }
+
+      final String? storageUrl = catalog
+          .firstWhere(
+            (service) => service['type'] == 'object-store',
+            orElse: () => null,
+          )?['endpoints']
+          ?.firstWhere(
+            (endpoint) => endpoint['interface'] == 'public',
+            orElse: () => null,
+          )?['url'];
+
+      if (storageUrl == null) {
+        print("Error: Storage URL not found in authentication response.");
+        return null;
+      }
+
+      // Step 3: Build the image URL and fetch the image
+      final String imageUrl = '$storageUrl/$bucketName/tool_images/$fileName';
+      final http.Response imageResponse = await http.get(
+        Uri.parse(imageUrl),
+        headers: {'X-Auth-Token': authToken},
+      );
+
+      if (imageResponse.statusCode != 200) {
+        print(
+            "Failed to fetch image. Status code: ${imageResponse.statusCode}");
+        print("Response body: ${imageResponse.body}");
+        return null;
+      }
+
+      // Return the image bytes
+      return imageResponse.bodyBytes;
+    } catch (e) {
+      print("Error fetching private image: $e");
+      return null;
+    }
+  }
+}
+
+final imageCacheManager = ImageCacheManager();
 
 class FullToolDetails extends StatelessWidget {
   final String toolId; // Use a unique tool ID instead of toolName
@@ -56,18 +171,26 @@ class FullToolDetails extends StatelessWidget {
                   color: Colors.grey[300],
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
+                child: FutureBuilder<Uint8List?>(
+                  future: imageCacheManager.getImage(imageUrl.split('/').last),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError || snapshot.data == null) {
                       return Center(
                         child: Icon(Icons.error, size: 50, color: Colors.red),
                       );
-                    },
-                  ),
+                    }
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.memory(
+                        snapshot.data!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -213,21 +336,27 @@ class FullScreenImage extends StatelessWidget {
         onTap: () {
           Navigator.pop(context);
         },
-        child: Center(
-          child: InteractiveViewer(
-            boundaryMargin: EdgeInsets.all(20.0),
-            minScale: 0.5,
-            maxScale: 4.0,
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Center(
-                  child: Icon(Icons.error, size: 50, color: Colors.red),
-                );
-              },
-            ),
-          ),
+        child: FutureBuilder<Uint8List?>(
+          future: imageCacheManager.getImage(imageUrl.split('/').last),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError || snapshot.data == null) {
+              return Center(
+                child: Icon(Icons.error, size: 50, color: Colors.red),
+              );
+            }
+            return InteractiveViewer(
+              boundaryMargin: EdgeInsets.all(20.0),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.memory(
+                snapshot.data!,
+                fit: BoxFit.contain,
+              ),
+            );
+          },
         ),
       ),
     );
