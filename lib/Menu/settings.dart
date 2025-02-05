@@ -22,27 +22,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            // Text(
-            //   'General',
-            //   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            // ),
-            // SizedBox(height: 10),
-            // Theme Toggle
-            // ListTile(
-            //   leading: Icon(Icons.brightness_4),
-            //   title: Text('Dark Mode'),
-            //   trailing: Switch(
-            //     value: _isDarkMode,
-            //     onChanged: (value) {
-            //       setState(() {
-            //         _isDarkMode = value;
-            //       });
-            //       _updateTheme(value);
-            //     },
-            //   ),
-            // ),
-
             // About Section
             SizedBox(height: 20),
             Text(
@@ -54,7 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: Icon(Icons.info),
               title: Text('Version'),
-              subtitle: Text('1.1.2+1'),
+              subtitle: Text('1.1.3+3'),
             ),
             // Privacy Policy
             ListTile(

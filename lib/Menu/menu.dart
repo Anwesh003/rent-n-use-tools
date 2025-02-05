@@ -1,10 +1,36 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../toolsprovider/tools_provider.dart';
 import 'profile.dart';
 import 'settings.dart';
 import 'your_rentals_page.dart';
+
+Future<void> _launchGoogleLens(BuildContext context) async {
+  const googleLensUrl =
+      'intent://lens/#Intent;scheme=google;package=com.google.ar.lens;end';
+  const playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.google.ar.lens';
+
+  try {
+    // Check if Google Lens can be launched
+    bool canLaunchLens = await canLaunchUrl(Uri.parse(googleLensUrl));
+    print('Can launch Google Lens: $canLaunchLens');
+    if (canLaunchLens) {
+      // Open Google Lens
+      await launchUrl(Uri.parse(googleLensUrl));
+    } else {
+      // Redirect to Play Store
+      await launchUrl(Uri.parse(playStoreUrl));
+    }
+  } catch (e) {
+    // Show an error message if something goes wrong
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to open Google Lens: $e')),
+    );
+  }
+}
 
 class Menu extends StatelessWidget {
   final Function(String) onMenuOptionSelected;
@@ -29,7 +55,6 @@ class Menu extends StatelessWidget {
             Image.asset(
               'assets/vcetlogo.png',
               height: 125,
-              // width: 200,
             ),
             const SizedBox(height: 24),
             _buildMenuItem(
@@ -38,9 +63,7 @@ class Menu extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          ProfileScreen()), // Navigate to ProfilePage
+                  MaterialPageRoute(builder: (context) => ProfileScreen()),
                 );
               },
               cardColor: cardColor,
@@ -54,9 +77,7 @@ class Menu extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          SettingsScreen()), // Navigate to SettingsPage
+                  MaterialPageRoute(builder: (context) => SettingsScreen()),
                 );
               },
               cardColor: cardColor,
@@ -86,6 +107,17 @@ class Menu extends StatelessWidget {
                   context,
                   MaterialPageRoute(builder: (context) => YourRentalsPage()),
                 );
+              },
+              cardColor: cardColor,
+              shadowColor: shadowColor,
+              iconColor: iconColor,
+            ),
+            const SizedBox(height: 16),
+            _buildMenuItem(
+              icon: Icons.camera_alt, // Use a camera icon for Google Lens
+              title: 'Google Lens',
+              onTap: () {
+                _launchGoogleLens(context); // Launch Google Lens
               },
               cardColor: cardColor,
               shadowColor: shadowColor,
