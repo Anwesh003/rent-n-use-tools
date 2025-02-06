@@ -33,7 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ListTile(
               leading: Icon(Icons.info),
               title: Text('Version'),
-              subtitle: Text('1.1.3+4'),
+              subtitle: Text('1.1.3+5'),
             ),
             // Privacy Policy
             ListTile(

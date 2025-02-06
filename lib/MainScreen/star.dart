@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 import 'FullToolDetails.dart'; // Import the FullToolDetails page
 
@@ -10,7 +14,7 @@ class StarScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('starred_tools')
             .doc(userId)
@@ -44,10 +48,12 @@ class StarScreen extends StatelessWidget {
               ),
             );
           }
+
           // Extract tool IDs from the starred tools collection
           final toolIds = snapshot.data!.docs.map((doc) => doc.id).toList();
+
           // Fetch tool details using the tool IDs
-          return StreamBuilder<QuerySnapshot>(
+          return StreamBuilder(
             stream: FirebaseFirestore.instance
                 .collection('tools')
                 .where(FieldPath.documentId, whereIn: toolIds)
@@ -80,13 +86,16 @@ class StarScreen extends StatelessWidget {
                   ),
                 );
               }
+
               final tools = toolsSnapshot.data!.docs;
+
               return ListView.builder(
                 padding: EdgeInsets.all(16.0),
                 itemCount: tools.length,
                 itemBuilder: (context, index) {
-                  final tool = tools[index].data() as Map<String, dynamic>;
+                  final tool = tools[index].data() as Map;
                   final toolId = tools[index].id;
+
                   return Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.0),
@@ -101,8 +110,7 @@ class StarScreen extends StatelessWidget {
                             builder: (context) => FullToolDetails(
                               toolId: toolId, // Pass the Firestore document ID
                               toolName: tool['toolName'] ?? 'Unknown Tool',
-                              totalQuantity: tool['quantity'] ??
-                                  0, // Correct parameter name
+                              totalQuantity: tool['quantity'] ?? 0,
                               price: tool['price']?.toDouble() ?? 0.0,
                               location: tool['location'] ?? 'N/A',
                               contact: tool['contact'] ?? 'N/A',
@@ -121,44 +129,47 @@ class StarScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: tool['imageUrl'] != null &&
-                                          tool['imageUrl'].isNotEmpty
-                                      ? Image.network(
-                                          tool['imageUrl'],
-                                          width: 80,
-                                          height: 80,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
-                                            print(
-                                                'Image failed to load: ${tool['imageUrl']}');
-                                            return Container(
-                                              width: 80,
-                                              height: 80,
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[300],
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Icon(Icons.image,
-                                                  size: 40,
-                                                  color: Colors.white),
-                                            );
-                                          },
-                                        )
-                                      : Container(
-                                          width: 80,
-                                          height: 80,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[300],
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Icon(Icons.image,
-                                              size: 40, color: Colors.white),
+                                FutureBuilder<Uint8List?>(
+                                  future: _fetchPrivateImage(tool['imageUrl']),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
+                                        child: Center(
+                                            child: CircularProgressIndicator()),
+                                      );
+                                    }
+                                    if (snapshot.hasError ||
+                                        snapshot.data == null) {
+                                      return Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[300],
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(Icons.image,
+                                            size: 40, color: Colors.white),
+                                      );
+                                    }
+                                    return ClipRRect(
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Image.memory(
+                                        snapshot.data!,
+                                        width: 80,
+                                        height: 80,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    );
+                                  },
                                 ),
                                 SizedBox(width: 16),
                                 Expanded(
@@ -215,5 +226,104 @@ class StarScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  /// Fetches a private image securely using Blomp (OpenStack API)
+  Future<Uint8List?> _fetchPrivateImage(String? imageUrl) async {
+    if (imageUrl == null || imageUrl.isEmpty) {
+      print("Error: File name is null or empty.");
+      return null;
+    }
+
+    try {
+      // Step 1: Authenticate with Blomp (OpenStack API)
+      final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
+      final String username =
+          'anweshkrishnab6324@gmail.com'; // Replace with secure credentials
+      final String password =
+          '5cmYC5!QzP!NsKG'; // Replace with secure credentials
+      final String bucketName =
+          'anweshkrishnab6324@gmail.com'; // Replace with your bucket name
+
+      final Map authPayload = {
+        "auth": {
+          "identity": {
+            "methods": ["password"],
+            "password": {
+              "user": {
+                "name": username,
+                "domain": {"id": "default"},
+                "password": password,
+              },
+            },
+          },
+        },
+      };
+
+      final http.Response authResponse = await http.post(
+        Uri.parse(authUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(authPayload),
+      );
+
+      if (authResponse.statusCode != 201) {
+        print("Authentication failed: ${authResponse.body}");
+        return null;
+      }
+
+      // Extract the token from the response headers
+      final String? authToken = authResponse.headers['x-subject-token'];
+      if (authToken == null) {
+        print(
+            "Error: X-Subject-Token header not found in authentication response.");
+        return null;
+      }
+
+      // Step 2: Fetch the storage URL from the catalog
+      final Map authData = jsonDecode(authResponse.body);
+      final List? catalog = authData['token']?['catalog'];
+      if (catalog == null || catalog.isEmpty) {
+        print("Error: No catalog found in authentication response.");
+        return null;
+      }
+
+      final String? storageUrl = catalog
+          .firstWhere(
+            (service) => service['type'] == 'object-store',
+            orElse: () => null,
+          )?['endpoints']
+          ?.firstWhere(
+            (endpoint) => endpoint['interface'] == 'public',
+            orElse: () => null,
+          )?['url'];
+
+      if (storageUrl == null) {
+        print("Error: Storage URL not found in authentication response.");
+        return null;
+      }
+
+      // Step 3: Build the image URL and fetch the image
+      final String fileName = imageUrl.split('/').last;
+      final String fullImageUrl =
+          '$storageUrl/$bucketName/tool_images/$fileName';
+
+      final http.Response imageResponse = await http.get(
+        Uri.parse(fullImageUrl),
+        headers: {'X-Auth-Token': authToken},
+      );
+
+      if (imageResponse.statusCode != 200) {
+        print(
+            "Failed to fetch image. Status code: ${imageResponse.statusCode}");
+        print("Response body: ${imageResponse.body}");
+        return null;
+      }
+
+      // Return the image bytes
+      return imageResponse.bodyBytes;
+    } catch (e) {
+      print("Error fetching private image: $e");
+      return null;
+    }
   }
 }

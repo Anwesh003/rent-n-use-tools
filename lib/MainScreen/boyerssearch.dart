@@ -1,15 +1,128 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-import '../MainScreen/BookingPage.dart'; // For booking functionality
-import '../MainScreen/FullToolDetails.dart'; // For full tool details
+import 'BookingPage.dart';
+import 'FullToolDetails.dart';
+
+/// Image Cache Manager for Private Images
+class ImageCacheManager {
+  final Map<String, Uint8List> _cache = {};
+
+  Future<Uint8List?> getImage(String fileName) async {
+    if (_cache.containsKey(fileName)) {
+      return _cache[fileName];
+    }
+    final imageBytes = await _fetchPrivateImage(fileName);
+    if (imageBytes != null) {
+      _cache[fileName] = imageBytes;
+    }
+    return imageBytes;
+  }
+
+  Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
+    if (fileName == null || fileName.isEmpty) {
+      print("Error: File name is null or empty.");
+      return null;
+    }
+    try {
+      // Step 1: Authenticate with Blomp (OpenStack API)
+      final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
+      final String username =
+          'anweshkrishnab6324@gmail.com'; // Replace with secure credentials
+      final String password =
+          '5cmYC5!QzP!NsKG'; // Replace with secure credentials
+      final String bucketName =
+          'anweshkrishnab6324@gmail.com'; // Replace with your bucket name
+
+      final Map authPayload = {
+        "auth": {
+          "identity": {
+            "methods": ["password"],
+            "password": {
+              "user": {
+                "name": username,
+                "domain": {"id": "default"},
+                "password": password,
+              },
+            },
+          },
+        },
+      };
+
+      final http.Response authResponse = await http.post(
+        Uri.parse(authUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(authPayload),
+      );
+
+      if (authResponse.statusCode != 201) {
+        print("Authentication failed: ${authResponse.body}");
+        return null;
+      }
+
+      // Extract the token from the response headers
+      final String? authToken = authResponse.headers['x-subject-token'];
+      if (authToken == null) {
+        print(
+            "Error: X-Subject-Token header not found in authentication response.");
+        return null;
+      }
+
+      // Step 2: Fetch the storage URL from the catalog
+      final Map authData = jsonDecode(authResponse.body);
+      final List? catalog = authData['token']?['catalog'];
+      if (catalog == null || catalog.isEmpty) {
+        print("Error: No catalog found in authentication response.");
+        return null;
+      }
+
+      final String? storageUrl = catalog
+          .firstWhere(
+            (service) => service['type'] == 'object-store',
+            orElse: () => null,
+          )?['endpoints']
+          ?.firstWhere(
+            (endpoint) => endpoint['interface'] == 'public',
+            orElse: () => null,
+          )?['url'];
+
+      if (storageUrl == null) {
+        print("Error: Storage URL not found in authentication response.");
+        return null;
+      }
+
+      // Step 3: Build the image URL and fetch the image
+      final String imageUrl = '$storageUrl/$bucketName/tool_images/$fileName';
+      final http.Response imageResponse = await http.get(
+        Uri.parse(imageUrl),
+        headers: {'X-Auth-Token': authToken},
+      );
+
+      if (imageResponse.statusCode != 200) {
+        print(
+            "Failed to fetch image. Status code: ${imageResponse.statusCode}");
+        print("Response body: ${imageResponse.body}");
+        return null;
+      }
+
+      // Return the image bytes
+      return imageResponse.bodyBytes;
+    } catch (e) {
+      print("Error fetching private image: $e");
+      return null;
+    }
+  }
+}
+
+final imageCacheManager = ImageCacheManager();
 
 class BoyerMoore {
   static List<int> _buildBadCharacterTable(String pattern) {
-    final table = <int>[];
-    for (var i = 0; i < 256; i++) {
-      table.add(pattern.length);
-    }
+    final table = List<int>.filled(256, pattern.length);
     for (var i = 0; i < pattern.length - 1; i++) {
       table[pattern.codeUnitAt(i)] = pattern.length - 1 - i;
     }
@@ -18,25 +131,19 @@ class BoyerMoore {
 
   static int indexOf(String text, String pattern) {
     if (pattern.isEmpty || text.isEmpty) return -1;
-
     final badCharTable = _buildBadCharacterTable(pattern);
     int i = pattern.length - 1;
-
     while (i < text.length) {
       int j = pattern.length - 1;
-
       while (j >= 0 && text[i] == pattern[j]) {
         i--;
         j--;
       }
-
       if (j < 0) {
         return i + 1; // Match found
       }
-
       i += badCharTable[text.codeUnitAt(i)];
     }
-
     return -1; // No match found
   }
 }
@@ -44,7 +151,6 @@ class BoyerMoore {
 class BoyerSearchScreen extends StatefulWidget {
   final String userId;
   final String? searchQuery; // Optional search query
-
   BoyerSearchScreen({required this.userId, this.searchQuery});
 
   @override
@@ -81,6 +187,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
     setState(() {
       _isLoading = true;
     });
+
     try {
       Query query = _firestore
           .collection('tools')
@@ -127,6 +234,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
     } catch (e) {
       print('Error fetching tools: $e');
     }
+
     setState(() {
       _isLoading = false;
     });
@@ -139,6 +247,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
           .doc(widget.userId)
           .collection('tools')
           .get();
+
       setState(() {
         _starredToolIds = snapshot.docs.map((doc) => doc.id).toSet();
       });
@@ -154,6 +263,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
           .doc(widget.userId)
           .collection('tools')
           .doc(toolId);
+
       final doc = await starredDoc.get();
       if (doc.exists) {
         await starredDoc.delete();
@@ -178,8 +288,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.searchQuery != null ? 'Search Results' : 'Available Tools',
-        ),
+            widget.searchQuery != null ? 'Search Results' : 'Available Tools'),
         backgroundColor: Colors.teal,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
@@ -203,9 +312,8 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                     ? 'No tools found for "${widget.searchQuery}".'
                     : 'No tools are currently available.',
                 style: TextStyle(
-                  fontSize: 18,
-                  color: isDarkMode ? Colors.white : Colors.grey[600],
-                ),
+                    fontSize: 18,
+                    color: isDarkMode ? Colors.white : Colors.grey[600]),
               ),
             )
           : ListView.builder(
@@ -215,6 +323,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                 if (index == _tools.length) {
                   return Center(child: CircularProgressIndicator());
                 }
+
                 final tool = _tools[index];
                 final imageUrl = tool['imageUrl'] as String?;
                 final int quantity =
@@ -227,8 +336,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                   margin: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   elevation: 8,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                      borderRadius: BorderRadius.circular(16)),
                   color: isDarkMode ? Colors.grey[850] : Colors.white,
                   child: InkWell(
                     onTap: () {
@@ -263,25 +371,47 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: imageUrl != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: Image.network(
-                                      imageUrl,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                    ),
+                                ? FutureBuilder<Uint8List?>(
+                                    future: imageCacheManager
+                                        .getImage(imageUrl.split('/').last),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return Center(
+                                            child: CircularProgressIndicator());
+                                      }
+                                      if (snapshot.hasError ||
+                                          snapshot.data == null) {
+                                        return Center(
+                                          child: Text(
+                                            'Failed to load image.',
+                                            style: TextStyle(
+                                                color: Colors.red,
+                                                fontSize: 16),
+                                          ),
+                                        );
+                                      }
+                                      return ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: Image.memory(
+                                          snapshot.data!,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                        ),
+                                      );
+                                    },
                                   )
                                 : Center(
                                     child: Text(
                                       'No image uploaded yet',
                                       style: TextStyle(
-                                        color: Colors.grey[700],
-                                        fontSize: 16,
-                                      ),
+                                          color: Colors.grey[700],
+                                          fontSize: 16),
                                     ),
                                   ),
                           ),
                           SizedBox(height: 16),
+
                           // Tool Name and Star Button
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -309,6 +439,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                             ],
                           ),
                           SizedBox(height: 10),
+
                           // Price
                           Text(
                             'Price: ₹${price.toStringAsFixed(2)} per day',
@@ -320,6 +451,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                             ),
                           ),
                           SizedBox(height: 8),
+
                           // Quantity
                           Text(
                             'Quantity: $quantity',
@@ -330,6 +462,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                             ),
                           ),
                           SizedBox(height: 8),
+
                           // Location
                           Text(
                             'Location: ${tool['location'] ?? 'N/A'}',
@@ -340,6 +473,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                             ),
                           ),
                           SizedBox(height: 8),
+
                           // Description
                           Text(
                             'Description: ${tool['description'] ?? 'No description available'}',
@@ -353,6 +487,7 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
                             ),
                           ),
                           SizedBox(height: 16),
+
                           // Book Now Button
                           ElevatedButton(
                             onPressed: () {
@@ -389,7 +524,6 @@ class _BoyerSearchScreenState extends State<BoyerSearchScreen> {
 
   void _showSearchDialog(BuildContext context) {
     final TextEditingController _searchController = TextEditingController();
-
     showDialog(
       context: context,
       builder: (context) {
