@@ -1,7 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'Logins/ResetPasswordScreen.dart';
@@ -40,7 +39,6 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.light,
               primarySwatch: Colors.teal,
               scaffoldBackgroundColor: Colors.white,
-              textTheme: GoogleFonts.poppinsTextTheme(), // Apply Poppins
               appBarTheme: AppBarTheme(
                 color: Colors.teal,
                 iconTheme: IconThemeData(color: Colors.white),
@@ -56,7 +54,6 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.dark,
               primarySwatch: Colors.teal,
               scaffoldBackgroundColor: Colors.black,
-              textTheme: GoogleFonts.poppinsTextTheme(), // Apply Poppins
               appBarTheme: AppBarTheme(
                 color: Colors.teal,
                 iconTheme: IconThemeData(color: Colors.white),
