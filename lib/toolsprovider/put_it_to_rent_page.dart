@@ -357,7 +357,7 @@ class _PutItToRentPageState extends State<PutItToRentPage> {
               SizedBox(height: 16),
               _buildTextField(
                   controller: _descriptionController,
-                  label: 'Description',
+                  label: 'Detailed Description with key words',
                   icon: Icons.description,
                   maxLines: 4,
                   errorMessage: _descriptionError),

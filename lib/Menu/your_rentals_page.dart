@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 class ImageCacheManager {
   final Map<String, Uint8List> _cache = {};
@@ -168,9 +169,11 @@ class YourRentalsPage extends StatelessWidget {
           // Extract rented tools for the current user
           final tools = snapshot.data!.docs;
           final List<Map<String, dynamic>> rentedTools = [];
+
           for (final toolDoc in tools) {
             final toolData = toolDoc.data() as Map?;
             if (toolData == null) continue;
+
             final bookings =
                 List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
             for (final booking in bookings) {
@@ -184,10 +187,19 @@ class YourRentalsPage extends StatelessWidget {
                   'toolOwnerUserId': toolData['userId'], // Owner's user ID
                   'startDate': booking['startDate'] ?? 'Unknown Start Date',
                   'endDate': booking['endDate'] ?? 'Unknown End Date',
+                  'isAccepted': booking['isAccepted'] ?? false,
+                  'isRejected': booking['isRejected'] ?? false,
                 });
               }
             }
           }
+
+          // Sort rented tools by startDate in ascending order
+          rentedTools.sort((a, b) {
+            final dateA = DateTime.tryParse(a['startDate']) ?? DateTime(9999);
+            final dateB = DateTime.tryParse(b['startDate']) ?? DateTime(9999);
+            return dateA.compareTo(dateB);
+          });
 
           // If no rentals are found for the user
           if (rentedTools.isEmpty) {
@@ -207,6 +219,21 @@ class YourRentalsPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final rental = rentedTools[index];
 
+              // Determine the status of the rental
+              final bool isAccepted = rental['isAccepted'];
+              final bool isRejected = rental['isRejected'];
+              final String status = isRejected
+                  ? 'Rejected'
+                  : isAccepted
+                      ? 'Accepted'
+                      : 'Pending';
+
+              final Color statusColor = isRejected
+                  ? Colors.red
+                  : isAccepted
+                      ? Colors.green
+                      : Colors.orange;
+
               // Fetch the owner's details from the users collection
               return FutureBuilder(
                 future: FirebaseFirestore.instance
@@ -225,8 +252,26 @@ class YourRentalsPage extends StatelessWidget {
 
                   final userData = userSnapshot.data!.data() as Map?;
                   final ownerName = userData?['name'] ?? 'Unknown Owner';
+                  final ownerPhone = userData?['phone'] ?? 'N/A';
                   final ownerAddress =
                       '${userData?['house'] ?? ''}, ${userData?['area'] ?? ''}, ${userData?['city'] ?? ''}, ${userData?['state'] ?? ''}, ${userData?['pincode'] ?? ''}';
+
+                  // Format the rental dates
+                  final formattedStartDate =
+                      rental['startDate'] != 'Unknown Start Date'
+                          ? DateFormat('d MMM yyyy')
+                              .format(DateTime.parse(rental['startDate']))
+                          : 'Unknown Start Date';
+                  final formattedEndDate =
+                      rental['endDate'] != 'Unknown End Date'
+                          ? DateFormat('d MMM yyyy')
+                              .format(DateTime.parse(rental['endDate']))
+                          : 'Unknown End Date';
+                  final dateRange =
+                      rental['startDate'] != 'Unknown Start Date' &&
+                              rental['endDate'] != 'Unknown End Date'
+                          ? 'From $formattedStartDate to $formattedEndDate'
+                          : 'Unknown Date Range';
 
                   return Card(
                     margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -241,7 +286,7 @@ class YourRentalsPage extends StatelessWidget {
                         children: [
                           // Tool Image (if available)
                           if (rental['imageUrl'].isNotEmpty)
-                            FutureBuilder<Uint8List?>(
+                            FutureBuilder(
                               future: imageCacheManager
                                   .getImage(rental['imageUrl'].split('/').last),
                               builder: (context, snapshot) {
@@ -297,12 +342,20 @@ class YourRentalsPage extends StatelessWidget {
                           SizedBox(height: 8),
 
                           // Rental Details
-                          Text(
-                            'Price: ₹${rental['price']}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                            ),
+                          Row(
+                            children: [
+                              Icon(Icons.attach_money,
+                                  size: 16, color: Colors.teal),
+                              SizedBox(width: 4),
+                              Text(
+                                'Price: ₹${rental['price']}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color:
+                                      isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ],
                           ),
                           Text(
                             'Quantity Booked: ${rental['quantityBooked']}',
@@ -321,18 +374,28 @@ class YourRentalsPage extends StatelessWidget {
 
                           // Rental Dates
                           Text(
-                            'Start Date: ${rental['startDate']}',
+                            dateRange,
                             style: TextStyle(
                               fontSize: 14,
+                              fontWeight: FontWeight.bold,
                               color: isDarkMode ? Colors.white : Colors.black,
                             ),
                           ),
-                          Text(
-                            'End Date: ${rental['endDate']}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: isDarkMode ? Colors.white : Colors.black,
-                            ),
+
+                          // Status Indicator
+                          Row(
+                            children: [
+                              Icon(Icons.circle, size: 12, color: statusColor),
+                              SizedBox(width: 4),
+                              Text(
+                                'Status: $status',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: statusColor,
+                                ),
+                              ),
+                            ],
                           ),
 
                           // Tool Owner Details
@@ -343,6 +406,21 @@ class YourRentalsPage extends StatelessWidget {
                               SizedBox(width: 4),
                               Text(
                                 'Owner: $ownerName',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color:
+                                      isDarkMode ? Colors.white : Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.phone, size: 16, color: Colors.teal),
+                              SizedBox(width: 4),
+                              Text(
+                                'Phone: $ownerPhone',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color:

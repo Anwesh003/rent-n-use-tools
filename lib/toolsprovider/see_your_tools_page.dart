@@ -4,23 +4,42 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
 
 import 'edit_tool_page.dart';
 
 class ImageCacheManager {
-  final Map<String, Uint8List> _cache = {};
+  final CacheManager _cacheManager = CacheManager(
+    Config(
+      'customCacheKey',
+      stalePeriod: const Duration(days: 7), // Cache expires after 7 days
+      maxNrOfCacheObjects: 100, // Limit cache to 100 objects
+    ),
+  );
 
   Future<Uint8List?> getImage(String fileName) async {
-    if (_cache.containsKey(fileName)) {
-      return _cache[fileName];
-    }
+    try {
+      // Step 1: Check if the image is already cached
+      final fileInfo = await _cacheManager.getFileFromCache(fileName);
+      if (fileInfo != null) {
+        return fileInfo.file.readAsBytesSync();
+      }
 
-    final imageBytes = await _fetchPrivateImage(fileName);
-    if (imageBytes != null) {
-      _cache[fileName] = imageBytes;
+      // Step 2: Fetch the image from the server
+      final imageBytes = await _fetchPrivateImage(fileName);
+      if (imageBytes == null) {
+        return null;
+      }
+
+      // Step 3: Save the image to the cache
+      await _cacheManager.putFile(fileName, Uint8List.fromList(imageBytes));
+
+      return imageBytes;
+    } catch (e) {
+      print("Error fetching or caching image: $e");
+      return null;
     }
-    return imageBytes;
   }
 
   Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
@@ -28,7 +47,6 @@ class ImageCacheManager {
       print("Error: File name is null or empty.");
       return null;
     }
-
     try {
       // Step 1: Authenticate with Blomp (OpenStack API)
       final String authUrl = 'https://authenticate.blomp.com/v3/auth/tokens';
@@ -38,7 +56,6 @@ class ImageCacheManager {
           '5cmYC5!QzP!NsKG'; // Replace with secure credentials
       final String bucketName =
           'anweshkrishnab6324@gmail.com'; // Replace with your bucket name
-
       final Map authPayload = {
         "auth": {
           "identity": {
@@ -53,18 +70,15 @@ class ImageCacheManager {
           },
         },
       };
-
       final http.Response authResponse = await http.post(
         Uri.parse(authUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(authPayload),
       );
-
       if (authResponse.statusCode != 201) {
         print("Authentication failed: ${authResponse.body}");
         return null;
       }
-
       // Extract the token from the response headers
       final String? authToken = authResponse.headers['x-subject-token'];
       if (authToken == null) {
@@ -72,7 +86,6 @@ class ImageCacheManager {
             "Error: X-Subject-Token header not found in authentication response.");
         return null;
       }
-
       // Step 2: Fetch the storage URL from the catalog
       final Map authData = jsonDecode(authResponse.body);
       final List? catalog = authData['token']?['catalog'];
@@ -80,7 +93,6 @@ class ImageCacheManager {
         print("Error: No catalog found in authentication response.");
         return null;
       }
-
       final String? storageUrl = catalog
           .firstWhere(
             (service) => service['type'] == 'object-store',
@@ -90,26 +102,22 @@ class ImageCacheManager {
             (endpoint) => endpoint['interface'] == 'public',
             orElse: () => null,
           )?['url'];
-
       if (storageUrl == null) {
         print("Error: Storage URL not found in authentication response.");
         return null;
       }
-
       // Step 3: Build the image URL and fetch the image
       final String imageUrl = '$storageUrl/$bucketName/tool_images/$fileName';
       final http.Response imageResponse = await http.get(
         Uri.parse(imageUrl),
         headers: {'X-Auth-Token': authToken},
       );
-
       if (imageResponse.statusCode != 200) {
         print(
             "Failed to fetch image. Status code: ${imageResponse.statusCode}");
         print("Response body: ${imageResponse.body}");
         return null;
       }
-
       // Return the image bytes
       return imageResponse.bodyBytes;
     } catch (e) {
@@ -228,7 +236,7 @@ class SeeYourToolsPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: imageUrl != null
-                              ? FutureBuilder<Uint8List?>(
+                              ? FutureBuilder(
                                   future: imageCacheManager
                                       .getImage(imageUrl.split('/').last),
                                   builder: (context, snapshot) {
@@ -415,7 +423,7 @@ class FullScreenImage extends StatelessWidget {
         onTap: () {
           Navigator.pop(context);
         },
-        child: FutureBuilder<Uint8List?>(
+        child: FutureBuilder(
           future: imageCacheManager.getImage(imageUrl.split('/').last),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {

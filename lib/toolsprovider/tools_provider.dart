@@ -63,9 +63,7 @@ class ToolsProviderPage extends StatelessWidget {
               'Who Rented/Booked Your Tools',
               Icons.people,
               Colors.teal,
-              RentedToolsPage(
-                  userId:
-                      'currentUser'), // Replace 'currentUser' with actual user ID
+              RentedToolsPage(),
             ),
           ],
         ),
