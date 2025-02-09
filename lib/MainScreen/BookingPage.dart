@@ -142,9 +142,6 @@ class _BookingPageState extends State<BookingPage> {
         transaction.update(toolRef, {
           'bookings': FieldValue.arrayUnion([bookingData]),
         });
-        if ((totalQuantity - bookedQuantity - _quantityToBook) == 0) {
-          transaction.update(toolRef, {'isAvailable': false});
-        }
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Booking request sent! Awaiting approval.')),

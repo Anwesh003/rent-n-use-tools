@@ -26,6 +26,11 @@ class ToolsProviderPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Image.asset(
+              'assets/vcetlogo.png',
+              height: 140,
+            ),
+
             // Title
             Text(
               'Welcome to Tools Provider Page',

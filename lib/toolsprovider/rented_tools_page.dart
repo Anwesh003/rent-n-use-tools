@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Import the intl package
 
 class ImageCacheManager {
-  final Map _cache = {};
+  final Map<String, Uint8List> _cache = {};
 
   Future<Uint8List?> getImage(String fileName) async {
     if (_cache.containsKey(fileName)) {
@@ -20,7 +20,8 @@ class ImageCacheManager {
   }
 
   Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
-    // Same implementation as before...
+    // Fetch private image logic here...
+    return null; // Placeholder
   }
 }
 
@@ -56,7 +57,7 @@ class RentedToolsPage extends StatelessWidget {
         backgroundColor: Colors.teal,
         elevation: 0,
       ),
-      body: StreamBuilder<QuerySnapshot>(
+      body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('tools')
             .where('userId', isEqualTo: user.uid)
@@ -65,7 +66,6 @@ class RentedToolsPage extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
             return Center(
               child: Text(
@@ -74,7 +74,6 @@ class RentedToolsPage extends StatelessWidget {
               ),
             );
           }
-
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Text(
@@ -91,7 +90,7 @@ class RentedToolsPage extends StatelessWidget {
 
           // Filter tools with valid bookings
           final rentedTools = tools.where((tool) {
-            final toolData = tool.data() as Map<String, dynamic>?;
+            final toolData = tool.data() as Map?;
             final bookings = toolData?['bookings'];
             if (bookings == null || !(bookings is List) || bookings.isEmpty) {
               return false;
@@ -112,7 +111,7 @@ class RentedToolsPage extends StatelessWidget {
             itemCount: rentedTools.length,
             itemBuilder: (context, index) {
               final tool = rentedTools[index];
-              final toolData = tool.data() as Map<String, dynamic>;
+              final toolData = tool.data() as Map;
               final toolName = toolData['toolName'] ?? 'Unnamed Tool';
               final bookings =
                   List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
@@ -131,8 +130,7 @@ class RentedToolsPage extends StatelessWidget {
                     const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 elevation: 8,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                    borderRadius: BorderRadius.circular(16)),
                 child: ExpansionTile(
                   leading: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -185,6 +183,8 @@ class RentedToolsPage extends StatelessWidget {
                     final quantityBooked = booking['quantityBooked'] ?? 0;
                     final isAccepted = booking['isAccepted'] ?? false;
                     final isRejected = booking['isRejected'] ?? false;
+                    final isGiven = booking['isGiven'] ?? false;
+                    final isReturned = booking['isReturned'] ?? false;
 
                     // Format dates to show only the date (e.g., "23 February 2025")
                     final formattedStartDate = startDate != 'Unknown Start Date'
@@ -203,7 +203,7 @@ class RentedToolsPage extends StatelessWidget {
                         : 'Unknown Date Range';
 
                     // Fetch user details for the renter
-                    return FutureBuilder<DocumentSnapshot>(
+                    return FutureBuilder(
                       future: FirebaseFirestore.instance
                           .collection('users')
                           .doc(renterUserId)
@@ -212,19 +212,14 @@ class RentedToolsPage extends StatelessWidget {
                         if (userSnapshot.connectionState ==
                             ConnectionState.waiting) {
                           return const ListTile(
-                            title: Text('Loading renter details...'),
-                          );
+                              title: Text('Loading renter details...'));
                         }
-
                         if (userSnapshot.hasError || !userSnapshot.hasData) {
                           return ListTile(
-                            title: Text('Failed to load renter details.'),
-                          );
+                              title: Text('Failed to load renter details.'));
                         }
 
-                        final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>?;
-
+                        final userData = userSnapshot.data!.data() as Map?;
                         final name = userData?['name'] ?? 'Unknown Renter';
                         final phone = userData?['phone'] ?? 'N/A';
                         final house = userData?['house'] ?? 'N/A';
@@ -260,11 +255,9 @@ class RentedToolsPage extends StatelessWidget {
                                   Text('City: $city, State: $state'),
                                   Text('Pincode: $pincode'),
                                   const SizedBox(height: 8),
-                                  Text(
-                                    dateRange,
-                                    style:
-                                        TextStyle(fontWeight: FontWeight.bold),
-                                  ),
+                                  Text(dateRange,
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
                                   Text(
                                     'Quantity Booked: $quantityBooked',
                                     style:
@@ -274,9 +267,8 @@ class RentedToolsPage extends StatelessWidget {
                                     Text(
                                       'Status: Rejected',
                                       style: TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                 ],
                               ),
@@ -289,13 +281,88 @@ class RentedToolsPage extends StatelessWidget {
                                       ? null
                                       : () async {
                                           try {
+                                            // Accept the booking
                                             await FirebaseFirestore.instance
                                                 .collection('tools')
                                                 .doc(tool.id)
                                                 .update({
                                               'bookings':
                                                   FieldValue.arrayRemove(
-                                                      [booking])
+                                                      [booking]),
+                                            });
+                                            await FirebaseFirestore.instance
+                                                .collection('tools')
+                                                .doc(tool.id)
+                                                .update({
+                                              'bookings':
+                                                  FieldValue.arrayUnion([
+                                                {
+                                                  ...booking,
+                                                  'isAccepted': true,
+                                                  'isGiven': false,
+                                                  'isReturned': false,
+                                                }
+                                              ]),
+                                              'quantity': FieldValue.increment(
+                                                  -quantityBooked),
+                                            });
+
+                                            // Check if quantity is now 0 and update isAvailable
+                                            final toolDoc =
+                                                await FirebaseFirestore.instance
+                                                    .collection('tools')
+                                                    .doc(tool.id)
+                                                    .get();
+                                            final currentQuantity =
+                                                toolDoc.data()?['quantity'] ??
+                                                    0;
+                                            if (currentQuantity == 0) {
+                                              await FirebaseFirestore.instance
+                                                  .collection('tools')
+                                                  .doc(tool.id)
+                                                  .update(
+                                                      {'isAvailable': false});
+                                            }
+
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text(
+                                                      'Booking accepted!')),
+                                            );
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                  content: Text(
+                                                      'Failed to accept booking.')),
+                                            );
+                                          }
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.check_circle_outline),
+                                  label: const Text('Accept'),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: isRejected || isAccepted
+                                      ? null
+                                      : () async {
+                                          try {
+                                            // Reject the booking
+                                            await FirebaseFirestore.instance
+                                                .collection('tools')
+                                                .doc(tool.id)
+                                                .update({
+                                              'bookings':
+                                                  FieldValue.arrayRemove(
+                                                      [booking]),
                                             });
                                             await FirebaseFirestore.instance
                                                 .collection('tools')
@@ -312,17 +379,15 @@ class RentedToolsPage extends StatelessWidget {
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(
                                               SnackBar(
-                                                content:
-                                                    Text('Booking rejected!'),
-                                              ),
+                                                  content: Text(
+                                                      'Booking rejected!')),
                                             );
                                           } catch (e) {
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(
                                               SnackBar(
-                                                content: Text(
-                                                    'Failed to reject booking.'),
-                                              ),
+                                                  content: Text(
+                                                      'Failed to reject booking.')),
                                             );
                                           }
                                         },
@@ -337,18 +402,84 @@ class RentedToolsPage extends StatelessWidget {
                                   icon: const Icon(Icons.cancel_outlined),
                                   label: const Text('Reject'),
                                 ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
                                 ElevatedButton.icon(
-                                  onPressed: isRejected || isAccepted
+                                  onPressed:
+                                      isRejected || !isAccepted || isGiven
+                                          ? null
+                                          : () async {
+                                              try {
+                                                // Mark the tool as given
+                                                await FirebaseFirestore.instance
+                                                    .collection('tools')
+                                                    .doc(tool.id)
+                                                    .update({
+                                                  'bookings':
+                                                      FieldValue.arrayRemove(
+                                                          [booking]),
+                                                });
+                                                await FirebaseFirestore.instance
+                                                    .collection('tools')
+                                                    .doc(tool.id)
+                                                    .update({
+                                                  'bookings':
+                                                      FieldValue.arrayUnion([
+                                                    {
+                                                      ...booking,
+                                                      'isGiven': true,
+                                                    }
+                                                  ]),
+                                                });
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                      content: Text(
+                                                          'Tool marked as given!')),
+                                                );
+                                              } catch (e) {
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                      content: Text(
+                                                          'Failed to mark tool as given.')),
+                                                );
+                                              }
+                                            },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isAccepted && !isGiven
+                                        ? Colors.orange
+                                        : Colors.grey,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 20, vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.handshake_outlined),
+                                  label:
+                                      Text(isGiven ? 'Given' : 'Mark as Given'),
+                                ),
+                                ElevatedButton.icon(
+                                  onPressed: isRejected ||
+                                          !isAccepted ||
+                                          !isGiven ||
+                                          isReturned
                                       ? null
                                       : () async {
                                           try {
+                                            // Mark the tool as returned
                                             await FirebaseFirestore.instance
                                                 .collection('tools')
                                                 .doc(tool.id)
                                                 .update({
                                               'bookings':
                                                   FieldValue.arrayRemove(
-                                                      [booking])
+                                                      [booking]),
                                             });
                                             await FirebaseFirestore.instance
                                                 .collection('tools')
@@ -358,37 +489,61 @@ class RentedToolsPage extends StatelessWidget {
                                                   FieldValue.arrayUnion([
                                                 {
                                                   ...booking,
-                                                  'isAccepted': true,
+                                                  'isReturned': true,
                                                 }
                                               ]),
+                                              'quantity': FieldValue.increment(
+                                                  quantityBooked),
                                             });
+
+                                            // Check if quantity is now greater than 0 and update isAvailable
+                                            final toolDoc =
+                                                await FirebaseFirestore.instance
+                                                    .collection('tools')
+                                                    .doc(tool.id)
+                                                    .get();
+                                            final currentQuantity =
+                                                toolDoc.data()?['quantity'] ??
+                                                    0;
+                                            if (currentQuantity > 0) {
+                                              await FirebaseFirestore.instance
+                                                  .collection('tools')
+                                                  .doc(tool.id)
+                                                  .update(
+                                                      {'isAvailable': true});
+                                            }
+
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(
                                               SnackBar(
-                                                content:
-                                                    Text('Booking accepted!'),
-                                              ),
+                                                  content: Text(
+                                                      'Tool marked as returned!')),
                                             );
                                           } catch (e) {
                                             ScaffoldMessenger.of(context)
                                                 .showSnackBar(
                                               SnackBar(
-                                                content: Text(
-                                                    'Failed to accept booking.'),
-                                              ),
+                                                  content: Text(
+                                                      'Failed to mark tool as returned.')),
                                             );
                                           }
                                         },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
+                                    backgroundColor:
+                                        isAccepted && isGiven && !isReturned
+                                            ? Colors.blue
+                                            : Colors.grey,
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 20, vertical: 12),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.check_circle_outline),
-                                  label: const Text('Accept'),
+                                  icon: const Icon(
+                                      Icons.assignment_return_outlined),
+                                  label: Text(isReturned
+                                      ? 'Returned'
+                                      : 'Mark as Returned'),
                                 ),
                               ],
                             ),

@@ -1,8 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../Menu/menu.dart'; // Import Menu widget from menu.dart
+import '../Menu/profile.dart'; // Import ProfileScreen
 import '../main.dart';
 import 'boyerssearch.dart';
 import 'star.dart'; // Import StarScreen from star.dart
@@ -17,27 +19,102 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1; // Default to Tools screen
   bool _isVisible = true; // Show appBar and bottomBar by default
   bool _isMenuVisible = false; // Show menu options when true
+  bool isLoading = true; // Loading state
+  bool isProfileComplete = false; // Track profile completion status
 
-  // List of screens to display based on the selected index
   late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _checkProfileCompletion();
     final user = FirebaseAuth.instance.currentUser;
-    // Ensure the user is logged in and initialize screens
     if (user != null) {
       _screens = [
         StarScreen(userId: user.uid), // Star Screen
         ToolsScreen(userId: user.uid), // Tools Screen with userId
       ];
     } else {
-      // Handle the case where user is not logged in
       _screens = [
         Center(child: Text('Please log in to access features.')),
         Center(child: Text('Please log in to access features.')),
       ];
     }
+  }
+
+  // Check if the user's profile is complete
+  Future<void> _checkProfileCompletion() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        if (userDoc.exists) {
+          var data = userDoc.data() as Map<String, dynamic>;
+          setState(() {
+            isProfileComplete = data['name']?.isNotEmpty == true &&
+                data['phone']?.isNotEmpty == true &&
+                data['house']?.isNotEmpty == true &&
+                data['area']?.isNotEmpty == true &&
+                data['landmark']?.isNotEmpty == true &&
+                data['pincode']?.isNotEmpty == true &&
+                data['city']?.isNotEmpty == true &&
+                data['state']?.isNotEmpty == true;
+          });
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+    setState(() {
+      isLoading = false;
+    });
+
+    // If profile is incomplete, show the prompt
+    if (!isProfileComplete && !isLoading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showProfilePrompt();
+      });
+    }
+  }
+
+  // Show a prompt to complete the profile
+  void _showProfilePrompt() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Incomplete Profile'),
+          content: Text(
+              'Your profile is incomplete. Please fill out your details to continue.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ProfileScreen()),
+                );
+              },
+              child: Text('Fill Profile'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onItemTapped(int index) {
@@ -58,6 +135,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
+
+    if (isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: _isVisible
@@ -114,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             )
           : null, // Hide the AppBar if _isVisible is false
-
       body: _isMenuVisible
           ? Menu(onMenuOptionSelected: (option) {
               setState(() {

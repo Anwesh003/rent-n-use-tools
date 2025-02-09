@@ -121,10 +121,9 @@ class YourRentalsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text('Your Rentals'),
+        title: const Text('Your Rentals'),
         backgroundColor: Colors.teal,
         elevation: 4,
       ),
@@ -132,7 +131,7 @@ class YourRentalsPage extends StatelessWidget {
         stream: FirebaseFirestore.instance.collection('tools').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
             print('Error fetching rentals: ${snapshot.error}');
@@ -169,16 +168,15 @@ class YourRentalsPage extends StatelessWidget {
           // Extract rented tools for the current user
           final tools = snapshot.data!.docs;
           final List<Map<String, dynamic>> rentedTools = [];
-
           for (final toolDoc in tools) {
             final toolData = toolDoc.data() as Map?;
             if (toolData == null) continue;
-
             final bookings =
                 List<Map<String, dynamic>>.from(toolData['bookings'] ?? []);
             for (final booking in bookings) {
               if (booking['userId'] == currentUser.uid) {
                 rentedTools.add({
+                  'toolId': toolDoc.id, // Add tool ID for Firestore reference
                   'toolName': toolData['toolName'] ?? 'Unnamed Tool',
                   'price': toolData['price'] ?? 'N/A',
                   'quantityBooked': booking['quantityBooked'] ?? 0,
@@ -189,6 +187,8 @@ class YourRentalsPage extends StatelessWidget {
                   'endDate': booking['endDate'] ?? 'Unknown End Date',
                   'isAccepted': booking['isAccepted'] ?? false,
                   'isRejected': booking['isRejected'] ?? false,
+                  'isGiven': booking['isGiven'] ?? false,
+                  'isReturned': booking['isReturned'] ?? false,
                 });
               }
             }
@@ -222,17 +222,28 @@ class YourRentalsPage extends StatelessWidget {
               // Determine the status of the rental
               final bool isAccepted = rental['isAccepted'];
               final bool isRejected = rental['isRejected'];
-              final String status = isRejected
-                  ? 'Rejected'
-                  : isAccepted
-                      ? 'Accepted'
-                      : 'Pending';
+              final bool isGiven = rental['isGiven'];
+              final bool isReturned = rental['isReturned'];
 
-              final Color statusColor = isRejected
-                  ? Colors.red
-                  : isAccepted
-                      ? Colors.green
-                      : Colors.orange;
+              String status;
+              Color statusColor;
+
+              if (isRejected) {
+                status = 'Rejected';
+                statusColor = Colors.red;
+              } else if (isAccepted && !isGiven) {
+                status = 'Accepted but Not Taken';
+                statusColor = Colors.orange;
+              } else if (isAccepted && isGiven && !isReturned) {
+                status = 'Taken';
+                statusColor = Colors.blue;
+              } else if (isAccepted && isGiven && isReturned) {
+                status = 'Returned';
+                statusColor = Colors.green;
+              } else {
+                status = 'Pending';
+                statusColor = Colors.grey;
+              }
 
               // Fetch the owner's details from the users collection
               return FutureBuilder(
@@ -242,12 +253,10 @@ class YourRentalsPage extends StatelessWidget {
                     .get(),
                 builder: (context, userSnapshot) {
                   if (userSnapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   }
                   if (userSnapshot.hasError || !userSnapshot.hasData) {
-                    return ListTile(
-                      title: Text('Owner details unavailable'),
-                    );
+                    return ListTile(title: Text('Owner details unavailable'));
                   }
 
                   final userData = userSnapshot.data!.data() as Map?;
@@ -274,11 +283,11 @@ class YourRentalsPage extends StatelessWidget {
                           : 'Unknown Date Range';
 
                   return Card(
-                    margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                     elevation: 2,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                        borderRadius: BorderRadius.circular(10)),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
@@ -299,7 +308,7 @@ class YourRentalsPage extends StatelessWidget {
                                       color: Colors.grey[300],
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Center(
+                                    child: const Center(
                                         child: CircularProgressIndicator()),
                                   );
                                 }
@@ -312,7 +321,7 @@ class YourRentalsPage extends StatelessWidget {
                                       color: Colors.grey[300],
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Icon(Icons.image_not_supported,
+                                    child: const Icon(Icons.image_not_supported,
                                         size: 50),
                                   );
                                 }
@@ -339,14 +348,14 @@ class YourRentalsPage extends StatelessWidget {
                               color: isDarkMode ? Colors.white : Colors.black,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
 
                           // Rental Details
                           Row(
                             children: [
-                              Icon(Icons.attach_money,
+                              const Icon(Icons.attach_money,
                                   size: 16, color: Colors.teal),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
                                 'Price: ₹${rental['price']}',
                                 style: TextStyle(
@@ -386,7 +395,7 @@ class YourRentalsPage extends StatelessWidget {
                           Row(
                             children: [
                               Icon(Icons.circle, size: 12, color: statusColor),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
                                 'Status: $status',
                                 style: TextStyle(
@@ -398,12 +407,80 @@ class YourRentalsPage extends StatelessWidget {
                             ],
                           ),
 
+                          // Cancel Button (Only for Pending Bookings)
+                          if (status == 'Pending')
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    try {
+                                      // Remove the booking from Firestore
+                                      final toolRef = FirebaseFirestore.instance
+                                          .collection('tools')
+                                          .doc(rental['toolId']);
+                                      await FirebaseFirestore.instance
+                                          .runTransaction((transaction) async {
+                                        final toolDoc =
+                                            await transaction.get(toolRef);
+                                        if (!toolDoc.exists) {
+                                          throw Exception(
+                                              'Tool document not found.');
+                                        }
+
+                                        final toolData = toolDoc.data();
+                                        final bookings =
+                                            List<Map<String, dynamic>>.from(
+                                                toolData?['bookings'] ?? []);
+
+                                        // Find and remove the specific booking
+                                        final updatedBookings =
+                                            bookings.where((booking) {
+                                          return booking['userId'] !=
+                                                  currentUser.uid ||
+                                              booking['startDate'] !=
+                                                  rental['startDate'] ||
+                                              booking['endDate'] !=
+                                                  rental['endDate'];
+                                        }).toList();
+
+                                        transaction.update(toolRef,
+                                            {'bookings': updatedBookings});
+                                      });
+
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'Booking canceled successfully!')),
+                                      );
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            content: Text(
+                                                'Error canceling booking: $e')),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.cancel, size: 16),
+                                  label: const Text('Cancel Booking'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                  ),
+                                ),
+                              ],
+                            ),
+
                           // Tool Owner Details
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.person, size: 16, color: Colors.teal),
-                              SizedBox(width: 4),
+                              const Icon(Icons.person,
+                                  size: 16, color: Colors.teal),
+                              const SizedBox(width: 4),
                               Text(
                                 'Owner: $ownerName',
                                 style: TextStyle(
@@ -414,11 +491,12 @@ class YourRentalsPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.phone, size: 16, color: Colors.teal),
-                              SizedBox(width: 4),
+                              const Icon(Icons.phone,
+                                  size: 16, color: Colors.teal),
+                              const SizedBox(width: 4),
                               Text(
                                 'Phone: $ownerPhone',
                                 style: TextStyle(
@@ -429,12 +507,12 @@ class YourRentalsPage extends StatelessWidget {
                               ),
                             ],
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.location_on,
+                              const Icon(Icons.location_on,
                                   size: 16, color: Colors.teal),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   'Address: $ownerAddress',

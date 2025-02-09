@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../toolsprovider/tools_provider.dart';
 import 'profile.dart';
 import 'settings.dart';
+import 'statementpage.dart';
 import 'your_rentals_page.dart';
 
 Future<void> _launchGoogleLens(BuildContext context) async {
@@ -12,7 +13,6 @@ Future<void> _launchGoogleLens(BuildContext context) async {
       'intent://lens/#Intent;scheme=google;package=com.google.ar.lens;end';
   const playStoreUrl =
       'https://play.google.com/store/apps/details?id=com.google.ar.lens';
-
   try {
     // Check if Google Lens can be launched
     bool canLaunchLens = await canLaunchUrl(Uri.parse(googleLensUrl));
@@ -49,92 +49,109 @@ class Menu extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/vcetlogo.png',
-              height: 125,
-            ),
-            const SizedBox(height: 24),
-            _buildMenuItem(
-              icon: Icons.account_circle,
-              title: 'Profile',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ProfileScreen()),
-                );
-              },
-              cardColor: cardColor,
-              shadowColor: shadowColor,
-              iconColor: iconColor,
-            ),
-            const SizedBox(height: 16),
-            _buildMenuItem(
-              icon: Icons.settings,
-              title: 'Settings',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => SettingsScreen()),
-                );
-              },
-              cardColor: cardColor,
-              shadowColor: shadowColor,
-              iconColor: iconColor,
-            ),
-            const SizedBox(height: 16),
-            _buildMenuItem(
-              icon: Icons.business_center,
-              title: 'Become Tools Provider',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ToolsProviderPage()),
-                );
-              },
-              cardColor: cardColor,
-              shadowColor: shadowColor,
-              iconColor: iconColor,
-            ),
-            const SizedBox(height: 16),
-            _buildMenuItem(
-              icon: Icons.shopping_cart,
-              title: 'Your Rentals',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => YourRentalsPage()),
-                );
-              },
-              cardColor: cardColor,
-              shadowColor: shadowColor,
-              iconColor: iconColor,
-            ),
-            const SizedBox(height: 16),
-            _buildMenuItem(
-              icon: Icons.camera_alt, // Use a camera icon for Google Lens
-              title: 'Google Lens',
-              onTap: () {
-                _launchGoogleLens(context); // Launch Google Lens
-              },
-              cardColor: cardColor,
-              shadowColor: shadowColor,
-              iconColor: iconColor,
-            ),
-            const SizedBox(height: 16),
-            _buildMenuItem(
-              icon: Icons.exit_to_app,
-              title: 'Logout',
-              onTap: () {
-                _showLogoutConfirmationDialog(context);
-              },
-              cardColor: cardColor,
-              shadowColor: shadowColor,
-              iconColor: iconColor,
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/vcetlogo.png',
+                height: 100,
+              ),
+              const SizedBox(height: 24),
+              _buildMenuItem(
+                icon: Icons.account_circle,
+                title: 'Profile',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ProfileScreen()),
+                  );
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+              const SizedBox(height: 16),
+              _buildMenuItem(
+                icon: Icons.settings,
+                title: 'Settings',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SettingsScreen()),
+                  );
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+              const SizedBox(height: 16),
+              _buildMenuItem(
+                icon: Icons.business_center,
+                title: 'Become Tools Provider',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ToolsProviderPage()),
+                  );
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+              const SizedBox(height: 16),
+              _buildMenuItem(
+                icon: Icons.shopping_cart,
+                title: 'Your Rentals',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => YourRentalsPage()),
+                  );
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+              const SizedBox(height: 16),
+              _buildMenuItem(
+                icon: Icons.receipt_long,
+                title: 'Statement',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => StatementPage()),
+                  );
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+              const SizedBox(height: 16),
+              _buildMenuItem(
+                icon: Icons.camera_alt, // Use a camera icon for Google Lens
+                title: 'Google Lens',
+                onTap: () {
+                  _launchGoogleLens(context); // Launch Google Lens
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+              const SizedBox(height: 16),
+              _buildMenuItem(
+                icon: Icons.exit_to_app,
+                title: 'Logout',
+                onTap: () {
+                  _showLogoutConfirmationDialog(context);
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+            ],
+          ),
         ),
       ),
     );
