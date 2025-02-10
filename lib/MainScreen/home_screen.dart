@@ -80,31 +80,44 @@ class _HomeScreenState extends State<HomeScreen> {
     // If profile is incomplete, show the prompt
     if (!isProfileComplete && !isLoading) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showProfilePrompt();
+        _showProfilePrompt(context);
       });
     }
   }
 
   // Show a prompt to complete the profile
-  void _showProfilePrompt() {
+  void _showProfilePrompt(BuildContext context) {
     showDialog(
       context: context,
+      barrierDismissible:
+          false, // Prevent dismissing the dialog by tapping outside
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Incomplete Profile'),
-          content: Text(
-              'Your profile is incomplete. Please fill out your details to continue.'),
+          title: Text('Welcome to Yantra Prasamvidha'),
+          content: Column(
+            mainAxisSize:
+                MainAxisSize.min, // Ensures the column takes minimal space
+            children: [
+              Image.asset(
+                'assets/yantraprasamvidha.png', // Replace with your logo's path
+                width: 100, // Adjust the width of the logo
+                height: 100, // Adjust the height of the logo
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Thank you for choosing our application. Please proceed with filling out your profile.',
+                textAlign: TextAlign.center, // Center-align the text
+              ),
+              SizedBox(
+                  height:
+                      16), // Add some spacing between the text and the image
+            ],
+          ),
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close the dialog
-              },
-              child: Text('Cancel'),
-            ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context); // Close the dialog
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => ProfileScreen()),
                 );
@@ -152,8 +165,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.asset(
                       'assets/yantraprasamvidha.png',
-                      height: 40,
-                      width: 40,
+                      height: 35,
+                      width: 35,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Icon(Icons.image_not_supported,
@@ -163,12 +176,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'Yantra Prasamvidha',
+                    'Yantra',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 1.2,
                       color: Colors.white,
+                      letterSpacing: 1.5, // Adds spacing between letters
+                    ),
+                  ),
+                  SizedBox(width: 4), // Small gap between words
+                  Text(
+                    'Prasamvidha',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color:
+                          Colors.white70, // Slightly lighter color for contrast
+                      letterSpacing: 1.5,
                     ),
                   ),
                 ],
