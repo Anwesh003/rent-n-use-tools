@@ -7,11 +7,14 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  final Uri _emailUri =
+      Uri(scheme: 'mailto', path: 'yantraprasamvidha@gmail.com');
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Settings'),
+        title: const Text('Settings'),
         backgroundColor: Colors.teal,
         elevation: 4,
       ),
@@ -20,30 +23,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'About',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            SizedBox(height: 10),
-            ListTile(
+            const SizedBox(height: 10),
+            const ListTile(
               leading: Icon(Icons.info),
               title: Text('Version'),
               subtitle: Text('1.1.3+11'),
             ),
             ListTile(
-              leading: Icon(Icons.privacy_tip),
-              title: Text('Privacy Policy'),
-              onTap: () {
-                _showPrivacyPolicyDialog(context);
-              },
+              leading: const Icon(Icons.privacy_tip),
+              title: const Text('Privacy Policy'),
+              onTap: () => _showPrivacyPolicyDialog(context),
             ),
             ListTile(
-              leading: Icon(Icons.contact_mail),
-              title: Text('Contact Us'),
-              onTap: () {
-                _showContactUsDetails(context);
-              },
+              leading: const Icon(Icons.contact_mail),
+              title: const Text('Contact Us'),
+              onTap: () => _showContactUsDialog(context),
             ),
           ],
         ),
@@ -55,8 +54,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Privacy Policy'),
-        content: SingleChildScrollView(
+        title: const Text('Privacy Policy'),
+        content: const SingleChildScrollView(
           child: Text(
             'Welcome to our app! We’re glad you’re here. Here’s a quick overview of how we handle your data:\n\n'
             '1. **Data Storage**: We use Firebase and Blomp to store data securely.\n\n'
@@ -69,72 +68,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Close'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),
     );
   }
 
-  void _showContactUsDetails(BuildContext context) {
+  void _showContactUsDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Contact Us'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'For any queries or support, please contact us at:',
-                style: TextStyle(fontSize: 16),
-              ),
-              SizedBox(height: 10),
-              Row(
-                children: [
-                  Icon(Icons.email, size: 18, color: Colors.teal),
-                  SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () async {
-                      final Uri emailUri = Uri(
-                        scheme: 'mailto',
-                        path: 'yantraprasamvidha@gmail.com',
-                      );
-                      if (await canLaunchUrl(emailUri)) {
-                        await launchUrl(emailUri);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Could not open email app')),
-                        );
-                      }
-                    },
-                    child: Text(
-                      'yantraprasamvidha@gmail.com',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.teal,
-                        decoration: TextDecoration.underline,
-                      ),
+        title: const Text('Contact Us'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'For any queries or support, please contact us at:',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.email, size: 18, color: Colors.teal),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _launchEmail,
+                  child: const Text(
+                    'yantraprasamvidha@gmail.com',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.teal,
+                      decoration: TextDecoration.underline,
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text('Close'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _launchEmail() async {
+    if (!await launchUrl(_emailUri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $_emailUri');
+    }
   }
 }
