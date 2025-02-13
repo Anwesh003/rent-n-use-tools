@@ -9,26 +9,16 @@ import 'statementpage.dart';
 import 'your_rentals_page.dart';
 
 Future<void> _launchGoogleLens(BuildContext context) async {
-  const googleLensUrl =
-      'intent://lens/#Intent;scheme=google;package=com.google.ar.lens;end';
+  const googleLensUrl = 'https://lens.google.com/';
+
   const playStoreUrl =
       'https://play.google.com/store/apps/details?id=com.google.ar.lens';
-  try {
-    // Check if Google Lens can be launched
-    bool canLaunchLens = await canLaunchUrl(Uri.parse(googleLensUrl));
-    print('Can launch Google Lens: $canLaunchLens');
-    if (canLaunchLens) {
-      // Open Google Lens
-      await launchUrl(Uri.parse(googleLensUrl));
-    } else {
-      // Redirect to Play Store
-      await launchUrl(Uri.parse(playStoreUrl));
-    }
-  } catch (e) {
-    // Show an error message if something goes wrong
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to open Google Lens: $e')),
-    );
+
+  if (await canLaunchUrl(Uri.parse(googleLensUrl))) {
+    await launchUrl(Uri.parse(googleLensUrl));
+  } else {
+    await launchUrl(Uri.parse(playStoreUrl),
+        mode: LaunchMode.externalApplication);
   }
 }
 
@@ -130,11 +120,9 @@ class Menu extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               _buildMenuItem(
-                icon: Icons.camera_alt, // Use a camera icon for Google Lens
+                icon: Icons.camera_alt,
                 title: 'Google Lens',
-                onTap: () {
-                  _launchGoogleLens(context); // Launch Google Lens
-                },
+                onTap: () => _launchGoogleLens(context),
                 cardColor: cardColor,
                 shadowColor: shadowColor,
                 iconColor: iconColor,
