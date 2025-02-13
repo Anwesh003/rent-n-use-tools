@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'aboutus.dart';
+
 class SettingsScreen extends StatefulWidget {
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -43,6 +45,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               leading: const Icon(Icons.contact_mail),
               title: const Text('Contact Us'),
               onTap: () => _showContactUsDialog(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.people),
+              title: const Text('About Us'),
+              onTap: () => _showAboutUsDialog(context),
             ),
           ],
         ),
@@ -124,4 +131,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       throw Exception('Could not launch $_emailUri');
     }
   }
+}
+
+void _showAboutUsDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AboutUsPage(), // Use the imported AboutUsDialog
+  );
 }
