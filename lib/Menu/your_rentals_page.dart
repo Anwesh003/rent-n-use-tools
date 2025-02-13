@@ -153,6 +153,32 @@ class YourRentalsPage extends StatelessWidget {
               ),
             );
           }
+          Future<bool> _hasUserProvidedFeedback(String toolId) async {
+            final toolDoc = await FirebaseFirestore.instance
+                .collection('tools')
+                .doc(toolId)
+                .get();
+            final feedbacks = List<Map<String, dynamic>>.from(
+                toolDoc.data()?['feedbacks'] ?? []);
+            final currentUserUid = FirebaseAuth.instance.currentUser!.uid;
+            return feedbacks
+                .any((feedback) => feedback['userId'] == currentUserUid);
+          }
+
+          Future<Map<String, dynamic>?> _fetchUserFeedback(
+              String toolId) async {
+            final toolDoc = await FirebaseFirestore.instance
+                .collection('tools')
+                .doc(toolId)
+                .get();
+            final feedbacks = List<Map<String, dynamic>>.from(
+                toolDoc.data()?['feedbacks'] ?? []);
+            final currentUserUid = FirebaseAuth.instance.currentUser!.uid;
+            return feedbacks.firstWhere(
+              (feedback) => feedback['userId'] == currentUserUid,
+              // orElse: () => null,
+            );
+          }
 
           // Get the current user
           final currentUser = FirebaseAuth.instance.currentUser;
@@ -407,6 +433,7 @@ class YourRentalsPage extends StatelessWidget {
                             ],
                           ),
 
+                          // Add Feedback Button (Only for Returned Tools)
                           // Cancel Button (Only for Pending Bookings)
                           if (status == 'Pending')
                             Row(
@@ -427,12 +454,10 @@ class YourRentalsPage extends StatelessWidget {
                                           throw Exception(
                                               'Tool document not found.');
                                         }
-
                                         final toolData = toolDoc.data();
                                         final bookings =
                                             List<Map<String, dynamic>>.from(
                                                 toolData?['bookings'] ?? []);
-
                                         // Find and remove the specific booking
                                         final updatedBookings =
                                             bookings.where((booking) {
@@ -443,11 +468,9 @@ class YourRentalsPage extends StatelessWidget {
                                               booking['endDate'] !=
                                                   rental['endDate'];
                                         }).toList();
-
                                         transaction.update(toolRef,
                                             {'bookings': updatedBookings});
                                       });
-
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
@@ -474,6 +497,69 @@ class YourRentalsPage extends StatelessWidget {
                               ],
                             ),
 
+// Add Feedback Button (Only for Returned Tools and if no feedback exists)
+                          // Check if feedback already exists for the current user
+                          FutureBuilder(
+                            future: _fetchUserFeedback(rental['toolId']),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const SizedBox
+                                    .shrink(); // Hide while checking
+                              }
+                              final userFeedback = snapshot.data;
+                              if (status == 'Returned') {
+                                if (userFeedback != null) {
+                                  // Display the feedback if it exists
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Divider(),
+                                      const Text(
+                                        'Your Feedback:',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Icon(Icons.star, color: Colors.amber),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                              '${userFeedback['rating']} stars'),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(userFeedback['feedback']),
+                                    ],
+                                  );
+                                } else {
+                                  // Show the "Provide Feedback" button if no feedback exists
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: () {
+                                          _showFeedbackDialog(context, rental);
+                                        },
+                                        icon: const Icon(Icons.feedback,
+                                            size: 16),
+                                        label: const Text('Provide Feedback'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.teal,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+                              }
+                              return const SizedBox
+                                  .shrink(); // Hide if status is not "Returned"
+                            },
+                          ),
                           // Tool Owner Details
                           const SizedBox(height: 8),
                           Row(
@@ -538,4 +624,105 @@ class YourRentalsPage extends StatelessWidget {
       ),
     );
   }
+}
+
+class FeedbackDialog extends StatefulWidget {
+  final Map<String, dynamic> rental;
+
+  const FeedbackDialog({Key? key, required this.rental}) : super(key: key);
+
+  @override
+  _FeedbackDialogState createState() => _FeedbackDialogState();
+}
+
+class _FeedbackDialogState extends State<FeedbackDialog> {
+  int rating = 0; // Default rating
+  String feedbackText = ''; // User feedback
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Provide Feedback'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Rating Stars
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              return IconButton(
+                icon: Icon(
+                  index < rating ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                ),
+                onPressed: () {
+                  setState(() {
+                    rating = index + 1; // Update the rating
+                  });
+                },
+              );
+            }),
+          ),
+          const SizedBox(height: 16),
+          // Feedback Text Field
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Your Feedback',
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                feedbackText = value; // Update the feedback text
+              });
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // Close dialog
+          },
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (rating > 0) {
+              // Save feedback to Firestore
+              final toolRef = FirebaseFirestore.instance
+                  .collection('tools')
+                  .doc(widget.rental['toolId']);
+              await toolRef.update({
+                'feedbacks': FieldValue.arrayUnion([
+                  {
+                    'userId': FirebaseAuth.instance.currentUser!.uid,
+                    'rating': rating,
+                    'feedback': feedbackText,
+                    'timestamp': Timestamp.now(),
+                  }
+                ]),
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Feedback submitted successfully!')),
+              );
+              Navigator.of(context).pop(); // Close dialog
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please provide a rating.')),
+              );
+            }
+          },
+          child: const Text('Submit'),
+        ),
+      ],
+    );
+  }
+}
+
+void _showFeedbackDialog(BuildContext context, Map<String, dynamic> rental) {
+  showDialog(
+    context: context,
+    builder: (context) => FeedbackDialog(rental: rental),
+  );
 }

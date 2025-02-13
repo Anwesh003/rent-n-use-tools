@@ -1,5 +1,7 @@
-import 'dart:typed_data';
 import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -279,36 +281,110 @@ class FullToolDetails extends StatelessWidget {
               ),
             ),
             SizedBox(height: 16),
-            // Book Now Button
-            ElevatedButton(
-              onPressed: isAvailable
-                  ? () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BookingPage(
-                            toolId: toolId, // Pass the unique tool ID
-                            toolName: toolName,
-                            price: price,
-                            totalQuantity: totalQuantity,
-                          ),
-                        ),
-                      );
+
+            // Book Now Button and Ratings Details
+            Column(
+              children: [
+                ElevatedButton(
+                  onPressed: isAvailable
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BookingPage(
+                                toolId: toolId, // Pass the unique tool ID
+                                toolName: toolName,
+                                price: price,
+                                totalQuantity: totalQuantity,
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isAvailable ? Colors.teal : Colors.grey,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 20, // Increase vertical padding for height
+                      horizontal: 60, // Increase horizontal padding for width
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                  ),
+                  child: Text(
+                    isAvailable ? 'Book Now' : 'Not Available',
+                    style: TextStyle(
+                      color: isAvailable ? Colors.white : Colors.black54,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FutureBuilder(
+                  future: _fetchFeedback(toolId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
                     }
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isAvailable ? Colors.teal : Colors.grey,
-                padding: EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+                    if (snapshot.hasError || !snapshot.hasData) {
+                      return const Text('No ratings available.');
+                    }
+                    final feedbackData = snapshot.data!;
+                    final double averageRating = feedbackData['averageRating'];
+                    final List<dynamic> reviews = feedbackData['reviews'];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Average Rating
+                        Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.amber),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${averageRating.toStringAsFixed(1)} (${reviews.length} reviews)',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDarkMode ? Colors.white : Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Individual Reviews
+                        if (reviews.isNotEmpty)
+                          Column(
+                            children: reviews.map((review) {
+                              return ListTile(
+                                leading: const Icon(Icons.account_circle,
+                                    size: 40, color: Colors.teal),
+                                title: Text(
+                                  review['feedback'],
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: isDarkMode
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                                subtitle: Row(
+                                  children: [
+                                    Icon(Icons.star,
+                                        color: Colors.amber, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text('${review['rating']} stars'),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          )
+                        else
+                          const Text('No reviews yet.'),
+                      ],
+                    );
+                  },
                 ),
-              ),
-              child: Text(
-                isAvailable ? 'Book Now' : 'Not Available',
-                style: TextStyle(
-                  color: isAvailable ? Colors.white : Colors.black54,
-                ),
-              ),
+              ],
             ),
           ],
         ),
@@ -361,4 +437,28 @@ class FullScreenImage extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<Map<String, dynamic>> _fetchFeedback(String toolId) async {
+  final toolDoc =
+      await FirebaseFirestore.instance.collection('tools').doc(toolId).get();
+  final feedbacks =
+      List<Map<String, dynamic>>.from(toolDoc.data()?['feedbacks'] ?? []);
+
+  if (feedbacks.isEmpty) {
+    return {'averageRating': 0.0, 'reviews': []};
+  }
+
+  // Calculate average rating
+  final totalRating = feedbacks.fold(
+      0.0,
+      (double sum, feedback) =>
+          sum + feedback['rating']); // Use 0.0 to ensure double
+  final averageRating =
+      totalRating / feedbacks.length; // Ensure this is treated as a double
+
+  return {
+    'averageRating': averageRating, // Return as double
+    'reviews': feedbacks,
+  };
 }
