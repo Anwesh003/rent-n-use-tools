@@ -111,10 +111,9 @@ class AboutUsPage extends StatelessWidget {
               _buildSectionTitle('Acknowledgments'),
               const SizedBox(height: 10),
               Text(
-                'We would like to express our heartfelt gratitude to our guide, Prof. Pradeep Kumar K G, for his constant support, invaluable guidance, and encouragement throughout the development of this project.\n\n'
-                'We also extend our sincere thanks to our esteemed institution, Vivekananda College of Engineering and Technology, Puttur, for providing us with the resources, infrastructure, and an inspiring environment that made this project possible.\n\n'
-                'Our deepest appreciation goes to the Principal and the Management of VCET for their unwavering commitment to fostering innovation and academic excellence. Their vision and leadership have been instrumental in creating a nurturing ecosystem for learning and growth.\n\n'
-                'Additionally, we are grateful to the teaching and non-teaching staff of the college for their continuous support and encouragement during every step of this journey. Their dedication and expertise have played a pivotal role in shaping our understanding and skills.',
+                'We extend our heartfelt gratitude to Prof. Pradeep Kumar K G for his guidance and support throughout this project. '
+                'We thank Vivekananda College of Engineering and Technology, Puttur, for providing the resources and environment that made this possible. '
+                'Special thanks to the Principal, Management, and staff for fostering innovation and academic excellence.',
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.5,
