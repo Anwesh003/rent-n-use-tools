@@ -92,7 +92,7 @@ class AboutUsPage extends StatelessWidget {
                 name: 'Chinmaya Thejasvi U S',
                 role: 'Assistant Developer',
                 description:
-                    'Chinmaya assisted in testing the application to ensure it meets quality standards.',
+                    'Chinmaya contributed to organizing project documentation and resources.',
                 imageUrl: 'assets/chinmay.jpg',
                 isAsset: true,
               ),
@@ -101,7 +101,7 @@ class AboutUsPage extends StatelessWidget {
                 name: 'Ganesh B S',
                 role: 'Assistant Developer',
                 description:
-                    'Ganesh contributed to organizing project documentation and resources.',
+                    'Ganesh assisted in testing the application to ensure it meets quality standards.',
                 imageUrl: 'assets/ganesh.jpg',
                 isAsset: true,
               ),

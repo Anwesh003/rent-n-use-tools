@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../toolsprovider/tools_provider.dart';
 import 'profile.dart';
 import 'settings.dart';
+import 'shop_details_page.dart';
 import 'statementpage.dart';
 import 'your_rentals_page.dart';
 
@@ -112,6 +113,20 @@ class Menu extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => StatementPage()),
+                  );
+                },
+                cardColor: cardColor,
+                shadowColor: shadowColor,
+                iconColor: iconColor,
+              ),
+              const SizedBox(height: 16),
+              _buildMenuItem(
+                icon: Icons.shopping_bag,
+                title: 'Buy Tools',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => ShopDetailsPage()),
                   );
                 },
                 cardColor: cardColor,
