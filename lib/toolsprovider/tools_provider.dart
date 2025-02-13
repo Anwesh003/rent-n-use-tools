@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'put_it_to_rent_page.dart'; // Import Put It to Rent Page
 import 'rented_tools_page.dart'; // Import Rented Tools Page
+import 'reported_problems_section.dart';
 import 'see_your_tools_page.dart'; // Import See Your Tools Page
 
 class ToolsProviderPage extends StatelessWidget {
@@ -69,6 +70,15 @@ class ToolsProviderPage extends StatelessWidget {
               Icons.people,
               Colors.teal,
               RentedToolsPage(),
+            ),
+            const SizedBox(height: 30),
+            // Button to "Reports"
+            _buildButton(
+              context,
+              'Reports',
+              Icons.report,
+              Colors.red, // Use red to indicate reports/issues
+              ReportedProblemsPage(), // Navigate to the Reports Page
             ),
           ],
         ),

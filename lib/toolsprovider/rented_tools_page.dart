@@ -1,31 +1,12 @@
-import 'dart:typed_data';
+
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Import the intl package
 
-class ImageCacheManager {
-  final Map<String, Uint8List> _cache = {};
 
-  Future<Uint8List?> getImage(String fileName) async {
-    if (_cache.containsKey(fileName)) {
-      return _cache[fileName];
-    }
-    final imageBytes = await _fetchPrivateImage(fileName);
-    if (imageBytes != null) {
-      _cache[fileName] = imageBytes;
-    }
-    return imageBytes;
-  }
 
-  Future<Uint8List?> _fetchPrivateImage(String? fileName) async {
-    // Fetch private image logic here...
-    return null; // Placeholder
-  }
-}
-
-final imageCacheManager = ImageCacheManager();
 
 class RentedToolsPage extends StatelessWidget {
   const RentedToolsPage({Key? key}) : super(key: key);

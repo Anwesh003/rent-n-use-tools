@@ -184,7 +184,7 @@ class _BookingPageState extends State<BookingPage> {
                   context: context,
                   initialDate: DateTime.now(),
                   firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(Duration(days: 365)),
+                  lastDate: DateTime.now().add(Duration(days: 7)),
                 );
                 if (selectedDate != null) {
                   setState(() {
@@ -213,7 +213,7 @@ class _BookingPageState extends State<BookingPage> {
                         context: context,
                         initialDate: _startDate!,
                         firstDate: _startDate!,
-                        lastDate: DateTime.now().add(Duration(days: 365)),
+                        lastDate: DateTime.now().add(Duration(days: 100)),
                       );
                       if (selectedDate != null) {
                         setState(() {

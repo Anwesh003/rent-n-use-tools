@@ -180,6 +180,20 @@ class YourRentalsPage extends StatelessWidget {
             );
           }
 
+          Future<Map<String, dynamic>?> _fetchUserProblem(String toolId) async {
+            final toolDoc = await FirebaseFirestore.instance
+                .collection('tools')
+                .doc(toolId)
+                .get();
+            final problems = List<Map<String, dynamic>>.from(
+                toolDoc.data()?['problems'] ?? []);
+            final currentUserUid = FirebaseAuth.instance.currentUser!.uid;
+            return problems.firstWhere(
+              (problem) => problem['userId'] == currentUserUid,
+              // orElse: () => null,
+            );
+          }
+
           // Get the current user
           final currentUser = FirebaseAuth.instance.currentUser;
           if (currentUser == null) {
@@ -560,6 +574,64 @@ class YourRentalsPage extends StatelessWidget {
                                   .shrink(); // Hide if status is not "Returned"
                             },
                           ),
+
+                          // Report Problem Button and Display Logic
+                          FutureBuilder(
+                            future: _fetchUserProblem(rental['toolId']),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const SizedBox
+                                    .shrink(); // Hide while checking
+                              }
+                              final userProblem = snapshot.data;
+
+                              if (status == 'Taken') {
+                                if (userProblem != null) {
+                                  // Display the reported problem in red
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Divider(),
+                                      Text(
+                                        'Reported: ${userProblem['problem']}',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                } else {
+                                  // Show the "Report Problem" button if no problem exists
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: () {
+                                          _showReportProblemDialog(
+                                              context, rental);
+                                        },
+                                        icon: const Icon(Icons.report_problem,
+                                            size: 16),
+                                        label: const Text('Report Problem'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.redAccent,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 16, vertical: 8),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+                              }
+                              return const SizedBox
+                                  .shrink(); // Hide if status is not "Taken"
+                            },
+                          ),
+
                           // Tool Owner Details
                           const SizedBox(height: 8),
                           Row(
@@ -724,5 +796,69 @@ void _showFeedbackDialog(BuildContext context, Map<String, dynamic> rental) {
   showDialog(
     context: context,
     builder: (context) => FeedbackDialog(rental: rental),
+  );
+}
+
+void _showReportProblemDialog(
+    BuildContext context, Map<String, dynamic> rental) {
+  String problemDescription = ''; // User's description of the problem
+
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Report a Problem'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Problem Description Field
+          TextField(
+            decoration: const InputDecoration(
+              labelText: 'Describe the problem',
+              border: OutlineInputBorder(),
+            ),
+            maxLines: 3,
+            onChanged: (value) {
+              problemDescription = value; // Update the problem description
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // Close dialog
+          },
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            if (problemDescription.trim().isNotEmpty) {
+              // Save the problem report to Firestore
+              final toolRef = FirebaseFirestore.instance
+                  .collection('tools')
+                  .doc(rental['toolId']);
+              await toolRef.update({
+                'problems': FieldValue.arrayUnion([
+                  {
+                    'userId': FirebaseAuth.instance.currentUser!.uid,
+                    'problem': problemDescription,
+                    'timestamp': Timestamp.now(),
+                  }
+                ]),
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Problem reported successfully!')),
+              );
+              Navigator.of(context).pop(); // Close dialog
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Please describe the problem.')),
+              );
+            }
+          },
+          child: const Text('Submit'),
+        ),
+      ],
+    ),
   );
 }
