@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,7 +37,7 @@ class _StatementPageState extends State<StatementPage> {
     }
   }
 
-  Future<void> _selectEndDate(BuildContext context) async {
+  Future _selectEndDate(BuildContext context) async {
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -48,6 +49,12 @@ class _StatementPageState extends State<StatementPage> {
         _endDate = pickedDate;
       });
     }
+  }
+
+  Future<Map<String, dynamic>> _fetchUserData(String userId) async {
+    final userSnapshot = await _firestore.collection('users').doc(userId).get();
+    final userData = userSnapshot.data() as Map<String, dynamic>;
+    return userData;
   }
 
   Future<Map<String, List<Map<String, dynamic>>>>
@@ -80,9 +87,20 @@ class _StatementPageState extends State<StatementPage> {
             bookingStartDate.isBefore(_endDate!) &&
             bookingEndDate.isAfter(_startDate!) &&
             booking['isAccepted'] == true) {
+          // Fetch renter's data
           final renterSnapshot =
               await _firestore.collection('users').doc(booking['userId']).get();
-          final renterData = renterSnapshot.data();
+          final renterData = renterSnapshot.data() as Map<String, dynamic>?;
+
+          // Construct renter's full address
+          final renterAddress = [
+            renterData?['house'],
+            renterData?['landmark'],
+            renterData?['area'],
+            renterData?['city'],
+            renterData?['state'],
+            renterData?['pincode'],
+          ].where((part) => part != null && part.isNotEmpty).join(', ');
 
           final daysRented =
               bookingEndDate.difference(bookingStartDate).inDays + 1;
@@ -98,6 +116,8 @@ class _StatementPageState extends State<StatementPage> {
             'isGiven': booking['isGiven'] ?? false,
             'isReturned': booking['isReturned'] ?? false,
             'totalPrice': totalPrice,
+            'renterAddress': renterAddress,
+            'renterPhone': renterData?['phone'] ?? 'N/A',
           };
 
           final renterName = renterData?['name'] ?? 'Unknown Renter';
@@ -140,11 +160,8 @@ class _StatementPageState extends State<StatementPage> {
               bookingStartDate.isBefore(_endDate!) &&
               bookingEndDate.isAfter(_startDate!) &&
               booking['isAccepted'] == true) {
-            final ownerSnapshot = await _firestore
-                .collection('users')
-                .doc(toolData['userId'])
-                .get();
-            final ownerData = ownerSnapshot.data();
+            // Use the tool's location as the provider's address
+            final providerAddress = toolData['location'] ?? 'N/A';
 
             final daysRented =
                 bookingEndDate.difference(bookingStartDate).inDays + 1;
@@ -161,9 +178,11 @@ class _StatementPageState extends State<StatementPage> {
               'isGiven': booking['isGiven'] ?? false,
               'isReturned': booking['isReturned'] ?? false,
               'totalPrice': totalPrice,
+              'providerAddress': providerAddress,
+              'providerPhone': toolData['contact'] ?? 'N/A',
             };
 
-            final ownerName = ownerData?['name'] ?? 'Unknown Owner';
+            final ownerName = toolData['ownerName'] ?? 'Unknown Owner';
             if (providerStatements.containsKey(ownerName)) {
               providerStatements[ownerName]!.add(statement);
             } else {
@@ -178,12 +197,17 @@ class _StatementPageState extends State<StatementPage> {
   }
 
   Future<void> _generatePdf(
-      String title,
-      String name,
-      String address,
-      String phone,
-      List<Map<String, dynamic>> statements,
-      double totalPrice) async {
+    String title,
+    String name,
+    String address,
+    String phone,
+    List<Map<String, dynamic>> statements,
+    double totalPrice,
+  ) async {
+    // Load the custom font
+    final fontData = await rootBundle.load('assets/fonts/Roboto-Regular.ttf');
+    final ttf = pw.Font.ttf(fontData);
+
     final pdf = pw.Document();
     final headers = [
       'Tool Name',
@@ -199,13 +223,18 @@ class _StatementPageState extends State<StatementPage> {
       pw.Page(
         build: (pw.Context context) => pw.Column(
           children: [
-            pw.Text(title,
-                style:
-                    pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              title,
+              style: pw.TextStyle(
+                  fontSize: 20, fontWeight: pw.FontWeight.bold, font: ttf),
+            ),
             pw.SizedBox(height: 10),
-            pw.Text('Name: $name', style: pw.TextStyle(fontSize: 16)),
-            pw.Text('Address: $address', style: pw.TextStyle(fontSize: 14)),
-            pw.Text('Phone: $phone', style: pw.TextStyle(fontSize: 14)),
+            pw.Text('Name: $name',
+                style: pw.TextStyle(fontSize: 16, font: ttf)),
+            pw.Text('Address: $address',
+                style: pw.TextStyle(fontSize: 14, font: ttf)),
+            pw.Text('Phone: $phone',
+                style: pw.TextStyle(fontSize: 14, font: ttf)),
             pw.SizedBox(height: 10),
             pw.Table.fromTextArray(
               headers: headers,
@@ -228,13 +257,17 @@ class _StatementPageState extends State<StatementPage> {
                 ];
               }).toList(),
               border: pw.TableBorder.all(width: 1, color: PdfColors.grey),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerStyle:
+                  pw.TextStyle(fontWeight: pw.FontWeight.bold, font: ttf),
+              cellStyle: pw.TextStyle(font: ttf),
               cellAlignment: pw.Alignment.centerLeft,
             ),
             pw.SizedBox(height: 10),
-            pw.Text('Total Price: ₹$totalPrice',
-                style:
-                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'Total Price: ₹$totalPrice',
+              style: pw.TextStyle(
+                  fontSize: 16, fontWeight: pw.FontWeight.bold, font: ttf),
+            ),
           ],
         ),
       ),
@@ -332,13 +365,14 @@ class _StatementPageState extends State<StatementPage> {
                       final userData = _selectedStatementType == 0
                           ? {
                               'name': key,
-                              'address': 'Address',
-                              'phone': 'Phone'
+                              'address': items.first['renterAddress'] ?? 'N/A',
+                              'phone': items.first['renterPhone'] ?? 'N/A',
                             }
                           : {
                               'name': key,
-                              'address': 'Provider Address',
-                              'phone': 'Provider Phone'
+                              'address':
+                                  items.first['providerAddress'] ?? 'N/A',
+                              'phone': items.first['providerPhone'] ?? 'N/A',
                             };
 
                       return Card(
