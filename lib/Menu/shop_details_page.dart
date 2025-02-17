@@ -16,16 +16,13 @@ class ShopDetailsPage extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(child: Text('No shops available.'));
           }
 
-          // Build the list of shops
           return ListView.builder(
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
@@ -33,9 +30,9 @@ class ShopDetailsPage extends StatelessWidget {
                   snapshot.data!.docs[index].data() as Map<String, dynamic>;
               return _buildShopCard(
                 context: context,
-                shopName: shopData['shopName'],
-                phone: shopData['phone'],
-                address: shopData['address'],
+                shopName: shopData['shopName'] ?? 'Unknown Shop',
+                phone: shopData['phone'] ?? 'No phone available',
+                address: shopData['address'] ?? 'No address available',
                 description:
                     shopData['description'] ?? 'No description available.',
                 type: shopData['type'] ?? 'Unknown Type',
@@ -63,32 +60,55 @@ class ShopDetailsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Shop Name and Type
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  shopName,
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    shopName,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 Chip(
-                  label: Text(type, style: TextStyle(fontSize: 12)),
-                  backgroundColor: Colors.blue[100],
+                  label: Text(
+                    type,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white // Light text for dark mode
+                          : Colors.black, // Dark text for light mode
+                    ),
+                  ),
+                  backgroundColor: Theme.of(context).brightness ==
+                          Brightness.dark
+                      ? Colors.blueGrey[700] // Darker background for dark mode
+                      : Colors.blue[100], // Lighter background for light mode
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            SizedBox(
+                height:
+                    8), // Add spacing between shop name/type and phone number
+            // Phone Number
             InkWell(
-              onTap: () => _launchPhone(phone),
+              onTap: () => _launchPhone(context, phone),
               child: Row(
                 children: [
                   Icon(Icons.phone, size: 18),
                   SizedBox(width: 8),
-                  Text(phone,
-                      style: TextStyle(fontSize: 16, color: Colors.blue)),
+                  Expanded(
+                    child: Text(
+                      phone,
+                      style: TextStyle(fontSize: 16, color: Colors.blue),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 8), // Add spacing between phone number and address
+            // Address
             Row(
               children: [
                 Icon(Icons.location_on, size: 18),
@@ -97,11 +117,13 @@ class ShopDetailsPage extends StatelessWidget {
                   child: Text(
                     address,
                     style: TextStyle(fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 8), // Add spacing between address and description
+            // Description
             Text(
               'Description:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -109,7 +131,7 @@ class ShopDetailsPage extends StatelessWidget {
             SizedBox(height: 4),
             Text(
               description,
-              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              style: TextStyle(fontSize: 14),
             ),
           ],
         ),
@@ -117,12 +139,20 @@ class ShopDetailsPage extends StatelessWidget {
     );
   }
 
-  Future<void> _launchPhone(String phoneNumber) async {
+  Future<void> _launchPhone(BuildContext context, String phoneNumber) async {
     final Uri phoneUri = Uri.parse('tel:$phoneNumber');
-    if (await canLaunchUrl(phoneUri)) {
-      await launchUrl(phoneUri);
-    } else {
-      throw 'Could not launch $phoneUri';
+    try {
+      if (await canLaunchUrl(phoneUri)) {
+        await launchUrl(phoneUri);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch $phoneNumber')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error launching phone: $e')),
+      );
     }
   }
 }

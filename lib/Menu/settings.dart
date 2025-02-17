@@ -34,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const ListTile(
               leading: Icon(Icons.info),
               title: Text('Version'),
-              subtitle: Text('1.1.3+12'),
+              subtitle: Text('1.1.3+13'),
             ),
             ListTile(
               leading: const Icon(Icons.privacy_tip),
