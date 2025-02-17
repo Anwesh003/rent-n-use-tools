@@ -192,7 +192,8 @@ class StarScreen extends StatelessWidget {
                                           'Quantity: ${tool['quantity'] ?? 'N/A'}'),
                                       SizedBox(height: 4),
                                       Text(
-                                          'Price: \$${tool['price'] ?? 'N/A'} per day'),
+                                        'Price: ₹${tool['price'] ?? 'N/A'} per day',
+                                      ),
                                     ],
                                   ),
                                 ),
