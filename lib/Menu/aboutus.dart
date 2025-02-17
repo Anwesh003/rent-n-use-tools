@@ -5,7 +5,6 @@ class AboutUsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // title: const Text('About Us'),
         backgroundColor: Colors.teal,
         elevation: 0,
       ),
@@ -15,9 +14,15 @@ class AboutUsPage extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.grey[200]!,
-              Colors.grey[300]!,
-              Colors.grey[400]!,
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[900]!
+                  : Colors.grey[200]!,
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[850]!
+                  : Colors.grey[300]!,
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[800]!
+                  : Colors.grey[400]!,
             ],
           ),
         ),
@@ -27,7 +32,7 @@ class AboutUsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // Title Section
-              _buildSectionTitle('About Us'),
+              _buildSectionTitle(context, 'About Us'),
               const SizedBox(height: 10),
               FadeInAnimation(
                 child: Text(
@@ -36,10 +41,30 @@ class AboutUsPage extends StatelessWidget {
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Pacifico',
-                    color: Colors.teal,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.tealAccent
+                        : Colors.teal,
                   ),
                   textAlign: TextAlign.center,
                 ),
+              ),
+              const SizedBox(height: 10),
+              // Add Images in a Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    'assets/vcetlogo.png', // Path to VCET logo
+                    width: 150,
+                    height: 150,
+                  ),
+                  const SizedBox(width: 20), // Spacing between the images
+                  Image.asset(
+                    'assets/yantraprasamvidha.png', // Path to Yantra Prasamvidha logo
+                    width: 105,
+                    height: 105,
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               Text(
@@ -48,67 +73,61 @@ class AboutUsPage extends StatelessWidget {
                   fontSize: 16,
                   height: 1.5,
                   fontFamily: 'Roboto',
-                  color: Colors.teal[800],
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.tealAccent[400]
+                      : Colors.teal[800],
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-
               // Guide Section
-              _buildSectionTitle('Guide'),
+              _buildSectionTitle(context, 'Guide'),
               const SizedBox(height: 10),
               _buildTeamMemberCard(
+                context,
                 name: 'Prof. Pradeep Kumar K G',
                 role: 'Head of Department (Computer Science & Engineering)',
-                description:
-                    'Prof. Pradeep Kumar K G has been instrumental in guiding and mentoring our team throughout the development process. His expertise and insights have been invaluable in shaping this project.',
                 imageUrl: 'assets/pradeepsir.jpg',
                 isAsset: true,
               ),
               const SizedBox(height: 20),
-
               // Team Members Section
-              _buildSectionTitle('Team Members'),
+              _buildSectionTitle(context, 'Team Members'),
               const SizedBox(height: 10),
               _buildTeamMemberCard(
+                context,
                 name: 'Aneesh S Mayya',
                 role: 'Assistant Developer',
-                description:
-                    'Aneesh played a key role in coordinating tasks and ensuring smooth progress throughout the project.',
                 imageUrl: 'assets/aneesh.jpg',
                 isAsset: true,
               ),
               const SizedBox(height: 10),
               _buildTeamMemberCard(
+                context,
                 name: 'Anwesh Krishna B',
                 role: 'Lead Developer',
-                description:
-                    'Anwesh is the backbone of the technical implementation of this project. He handled everything from backend development to integrating APIs and ensuring functionality.',
                 imageUrl: 'assets/anwesh.jpg',
                 isAsset: true,
               ),
               const SizedBox(height: 10),
               _buildTeamMemberCard(
+                context,
                 name: 'Chinmaya Thejasvi U S',
                 role: 'Assistant Developer',
-                description:
-                    'Chinmaya contributed to organizing project documentation and resources.',
                 imageUrl: 'assets/chinmay.jpg',
                 isAsset: true,
               ),
               const SizedBox(height: 10),
               _buildTeamMemberCard(
+                context,
                 name: 'Ganesh B S',
                 role: 'Assistant Developer',
-                description:
-                    'Ganesh assisted in testing the application to ensure it meets quality standards.',
                 imageUrl: 'assets/ganesh.jpg',
                 isAsset: true,
               ),
               const SizedBox(height: 20),
-
               // Acknowledgments Section
-              _buildSectionTitle('Acknowledgments'),
+              _buildSectionTitle(context, 'Acknowledgments'),
               const SizedBox(height: 10),
               Text(
                 'We extend our heartfelt gratitude to Prof. Pradeep Kumar K G for his guidance and support throughout this project. '
@@ -118,12 +137,13 @@ class AboutUsPage extends StatelessWidget {
                   fontSize: 16,
                   height: 1.5,
                   fontFamily: 'Roboto',
-                  color: Colors.teal[800],
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.tealAccent[400]
+                      : Colors.teal[800],
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
-
               // Closing Message
               FadeInAnimation(
                 child: Text(
@@ -132,7 +152,9 @@ class AboutUsPage extends StatelessWidget {
                     fontSize: 16,
                     fontStyle: FontStyle.italic,
                     fontFamily: 'DancingScript',
-                    color: Colors.teal[700],
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.tealAccent
+                        : Colors.teal[700],
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -146,7 +168,7 @@ class AboutUsPage extends StatelessWidget {
   }
 
   // Helper Method to Build Section Titles
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(BuildContext context, String title) {
     return FadeInAnimation(
       child: Text(
         title,
@@ -154,7 +176,9 @@ class AboutUsPage extends StatelessWidget {
           fontSize: 24,
           fontWeight: FontWeight.bold,
           fontFamily: 'Lobster',
-          color: Colors.teal,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.tealAccent
+              : Colors.teal,
         ),
         textAlign: TextAlign.center,
       ),
@@ -163,10 +187,10 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // Helper Method to Build Team Member Cards
-Widget _buildTeamMemberCard({
+Widget _buildTeamMemberCard(
+  BuildContext context, {
   required String name,
   required String role,
-  required String description,
   required String imageUrl,
   bool isAsset = false, // Flag to check if the image is from assets
 }) {
@@ -175,7 +199,9 @@ Widget _buildTeamMemberCard({
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[850]
+            : Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
@@ -224,16 +250,9 @@ Widget _buildTeamMemberCard({
                   style: TextStyle(
                     fontSize: 14,
                     fontFamily: 'Roboto',
-                    color: Colors.teal,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.5,
-                    fontFamily: 'Roboto',
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.tealAccent
+                        : Colors.teal,
                   ),
                 ),
               ],
@@ -248,7 +267,6 @@ Widget _buildTeamMemberCard({
 // Custom Animation Widget
 class FadeInAnimation extends StatefulWidget {
   final Widget child;
-
   const FadeInAnimation({Key? key, required this.child}) : super(key: key);
 
   @override
