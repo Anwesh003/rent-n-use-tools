@@ -22,7 +22,6 @@ class ShopDetailsPage extends StatelessWidget {
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(child: Text('No shops available.'));
           }
-
           return ListView.builder(
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
@@ -52,6 +51,12 @@ class ShopDetailsPage extends StatelessWidget {
     required String description,
     required String type,
   }) {
+    // Replace literal '\n' with actual newline characters
+    final formattedDescription = description.replaceAll(r'\n', '\n');
+
+    // Parse the description for bold text
+    List<TextSpan> parsedDescription = _parseDescription(formattedDescription);
+
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 4,
@@ -76,20 +81,18 @@ class ShopDetailsPage extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white // Light text for dark mode
-                          : Colors.black, // Dark text for light mode
+                          ? Colors.white
+                          : Colors.black,
                     ),
                   ),
-                  backgroundColor: Theme.of(context).brightness ==
-                          Brightness.dark
-                      ? Colors.blueGrey[700] // Darker background for dark mode
-                      : Colors.blue[100], // Lighter background for light mode
+                  backgroundColor:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.blueGrey[700]
+                          : Colors.blue[100],
                 ),
               ],
             ),
-            SizedBox(
-                height:
-                    8), // Add spacing between shop name/type and phone number
+            SizedBox(height: 8),
             // Phone Number
             InkWell(
               onTap: () => _launchPhone(context, phone),
@@ -107,7 +110,7 @@ class ShopDetailsPage extends StatelessWidget {
                 ],
               ),
             ),
-            SizedBox(height: 8), // Add spacing between phone number and address
+            SizedBox(height: 8),
             // Address
             Row(
               children: [
@@ -122,21 +125,45 @@ class ShopDetailsPage extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 8), // Add spacing between address and description
+            SizedBox(height: 8),
             // Description
             Text(
               'Description:',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 4),
-            Text(
-              description,
-              style: TextStyle(fontSize: 14),
+            RichText(
+              text: TextSpan(
+                style:
+                    DefaultTextStyle.of(context).style.copyWith(fontSize: 14),
+                children: parsedDescription,
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  List<TextSpan> _parseDescription(String description) {
+    // Split the description by '**' to find bold segments
+    List<String> parts = description.split('**');
+    List<TextSpan> spans = [];
+
+    for (int i = 0; i < parts.length; i++) {
+      if (i % 2 == 1) {
+        // Odd-indexed parts are bold
+        spans.add(TextSpan(
+          text: parts[i],
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ));
+      } else {
+        // Even-indexed parts are normal text
+        spans.add(TextSpan(text: parts[i]));
+      }
+    }
+
+    return spans;
   }
 
   Future<void> _launchPhone(BuildContext context, String phoneNumber) async {
