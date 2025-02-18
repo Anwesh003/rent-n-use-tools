@@ -27,26 +27,20 @@ Renters can book tools directly through the app, selecting start and end dates a
 ## Screenshots
 Below are some screenshots showcasing the progress of the project:
 
-<img src="screenshots/screenshot1.png" width="250" />  
-*Figure 1: Login Screen* 
-<img src="screenshots/screenshot2.png" width="250" />  
-*Figure 2: Reset Password Screen*
-<img src="screenshots/screenshot3.png" width="250" />  
-*Figure 3: Home Screen* 
-<img src="screenshots/screenshot4.png" width="250" />  
-*Figure 4: Menu*
-<img src="screenshots/screenshot5.png" width="250" />  
-*Figure 5: Tools Provider Screen* 
-<img src="screenshots/screenshot6.png" width="250" />  
-*Figure 6: see your tools Screen*
-<img src="screenshots/screenshot7.png" width="250" />  
-*Figure 7: Put to rent Screen* 
-<img src="screenshots/screenshot8.png" width="250" />  
-*Figure 8: starred tools Screen*
-<img src="screenshots/screenshot9.png" width="250" />  
-*Figure 9: rent Screen* 
-<img src="screenshots/screenshot10.png" width="250" /> 
-*Figure 10: see full details Screen*
+<img src="screenshots/screenshot1.jpg" width="250" />  
+
+<img src="screenshots/screenshot2.jpg" width="250" />  
+
+<img src="screenshots/screenshot3.jpg" width="250" />  
+
+<img src="screenshots/screenshot4.jpg" width="250" />  
+
+<img src="screenshots/screenshot5.jpg" width="250" />  
+
+<img src="screenshots/screenshot6.jpg" width="250" />  
+
+<img src="screenshots/screenshot7.jpg" width="250" />  
+
 
 
 
