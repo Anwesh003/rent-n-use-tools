@@ -28,18 +28,18 @@
 
 ##  Overview
 
-<code>❯ <p>
+<code>❯ 
 This project is currently in its early stages but already demonstrates core functionality. Built using Flutter , the app provides a responsive and intuitive user interface. The backend leverages Firestore for real-time data storage and Firebase Authentication for secure user login and management.
 
 While the primary focus is on Android, there are plans to expand support to iOS in the near future. The goal is to create a cross-platform solution that works seamlessly across devices.
-</p>
+
 </code>
 
 ---
 
 ##  Features
 
-<code>❯ <p>
+<code>❯ 
 1. Tool Rental
 Rent out your tools or borrow tools from others effortlessly.
 View detailed information about each tool, including availability, price, location, and contact details.
@@ -57,7 +57,7 @@ Users can "star" their favorite tools for quick access later.
 6. Booking System
 Renters can book tools directly through the app, selecting start and end dates and confirming availability.
 Below are some screenshots showcasing the progress of the project:
-</p>
+
 <img src="screenshots/screenshot1.jpg" width="800" />  
 
 <img src="screenshots/screenshot2.jpg" width="800" />  
