@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart'; // Add this import
 import 'package:provider/provider.dart';
 
 import 'Logins/ResetPasswordScreen.dart';
@@ -39,6 +40,11 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.light,
               primarySwatch: Colors.teal,
               scaffoldBackgroundColor: Colors.white,
+              // Add font family using Google Fonts
+              textTheme: GoogleFonts.openSansTextTheme(
+                ThemeData.light()
+                    .textTheme, // Apply it to light theme's base text styles
+              ),
               appBarTheme: AppBarTheme(
                 color: Colors.teal,
                 iconTheme: IconThemeData(color: Colors.white),
@@ -54,6 +60,11 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.dark,
               primarySwatch: Colors.teal,
               scaffoldBackgroundColor: Colors.black,
+              // Add font family for dark theme
+              textTheme: GoogleFonts.openSansTextTheme(
+                ThemeData.dark()
+                    .textTheme, // Apply it to dark theme's base text styles
+              ),
               appBarTheme: AppBarTheme(
                 color: Colors.teal,
                 iconTheme: IconThemeData(color: Colors.white),
