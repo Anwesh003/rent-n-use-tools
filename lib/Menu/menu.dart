@@ -168,31 +168,37 @@ class Menu extends StatelessWidget {
     required Color shadowColor,
     required Color iconColor,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-        decoration: BoxDecoration(
-          color: cardColor,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: shadowColor.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: shadowColor.withOpacity(0.5),
+                  blurRadius: 40,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: iconColor, size: 28),
-            const SizedBox(width: 16),
-            Text(
-              title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            child: Row(
+              children: [
+                Icon(icon, color: iconColor, size: 28),
+                const SizedBox(width: 16),
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
