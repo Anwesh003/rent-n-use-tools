@@ -39,11 +39,12 @@ class Menu extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const SizedBox(height: 10),
               Image.asset(
                 'assets/vcetlogo.png',
                 height: 100,
@@ -153,6 +154,7 @@ class Menu extends StatelessWidget {
                 shadowColor: shadowColor,
                 iconColor: iconColor,
               ),
+              const SizedBox(height: 16),
             ],
           ),
         ),
