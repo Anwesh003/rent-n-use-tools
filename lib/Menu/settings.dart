@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore package
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +12,41 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final Uri _emailUri =
       Uri(scheme: 'mailto', path: 'yantraprasamvidha@gmail.com');
+
+  // Variables to store fetched links
+  String? _userManualLink;
+  String? _privacyPolicyLink;
+
+  // Reference to Firestore collection and document
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _collectionName = 'externallinks';
+  final String _documentName = 'appLinks';
+
+  // Fetch links from Firestore when the widget initializes
+  @override
+  void initState() {
+    super.initState();
+    _fetchLinksFromFirestore();
+  }
+
+  // Method to fetch links from Firestore
+  Future<void> _fetchLinksFromFirestore() async {
+    try {
+      DocumentSnapshot documentSnapshot =
+          await _firestore.collection(_collectionName).doc(_documentName).get();
+
+      if (documentSnapshot.exists) {
+        setState(() {
+          _userManualLink = documentSnapshot.get('userManual');
+          _privacyPolicyLink = documentSnapshot.get('privacyPolicy');
+        });
+      } else {
+        print('Document does not exist in Firestore');
+      }
+    } catch (e) {
+      print('Error fetching links from Firestore: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,14 +73,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: Text('1.1.3+15'),
             ),
             ListTile(
+              leading: const Icon(Icons.menu_book),
+              title: const Text('User Manual'),
+              onTap: _launchUserManual,
+            ),
+            ListTile(
               leading: const Icon(Icons.privacy_tip),
               title: const Text('Privacy Policy'),
-              onTap: () => _showPrivacyPolicyDialog(context),
+              onTap: _launchPrivacyPolicy,
             ),
             ListTile(
               leading: const Icon(Icons.contact_mail),
               title: const Text('Contact Us'),
-              onTap: () => _showContactUsDialog(context),
+              onTap: _showContactUsDialog,
             ),
             ListTile(
               leading: const Icon(Icons.people),
@@ -57,33 +98,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showPrivacyPolicyDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Privacy Policy'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'Welcome to our app! We’re glad you’re here. Here’s a quick overview of how we handle your data:\n\n'
-            '1. **Data Storage**: We use Firebase and Blomp to store data securely.\n\n'
-            '2. **Your Data**: While we strive to keep your data safe, please remember that no system is completely immune to risks.\n\n'
-            '3. **Responsibility**: By using this app, you acknowledge that we are not responsible for any data loss, misuse, or issues arising from third-party services.\n\n'
-            '4. **Your Agreement**: By continuing to use this app, you agree to abide by our data policies.\n\n'
-            'We’re committed to making your experience as smooth and secure as possible.',
-            style: TextStyle(fontSize: 16, height: 1.5),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _launchUserManual() async {
+    if (_userManualLink == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User Manual link not available')),
+      );
+      return;
+    }
+
+    final Uri userManualUri = Uri.parse(_userManualLink!);
+    if (!await launchUrl(userManualUri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $userManualUri');
+    }
   }
 
-  void _showContactUsDialog(BuildContext context) {
+  Future<void> _launchPrivacyPolicy() async {
+    if (_privacyPolicyLink == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Privacy Policy link not available')),
+      );
+      return;
+    }
+
+    final Uri privacyPolicyUri = Uri.parse(_privacyPolicyLink!);
+    if (!await launchUrl(privacyPolicyUri,
+        mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $privacyPolicyUri');
+    }
+  }
+
+  void _showContactUsDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -136,6 +180,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 void _showAboutUsDialog(BuildContext context) {
   showDialog(
     context: context,
-    builder: (context) => AboutUsPage(), // Use the imported AboutUsDialog
+    builder: (context) => AboutUsPage(), // Imported AboutUsPage
   );
 }
